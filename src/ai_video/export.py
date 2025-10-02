@@ -118,7 +118,12 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path) -> None:
             if isinstance(pw, dict):
                 if pw.get('architecture'):
                     arch = pw['architecture']
-                    arch_str = ', '.join(arch) if isinstance(arch, list) else str(arch)
+                    if isinstance(arch, list):
+                        # Convert all items to strings (handle both str and dict)
+                        arch_strs = [str(a) if not isinstance(a, dict) else a.get('description', str(a)) for a in arch]
+                        arch_str = ', '.join(arch_strs)
+                    else:
+                        arch_str = str(arch)
                     md_lines.append(f"- **Architecture:** {arch_str}")
                 
                 if pw.get('signs_text'):

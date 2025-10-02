@@ -487,23 +487,31 @@ class PromptGenerationAgent:
                     parts.append(f"positioned {subject['position']}")
                 
                 # Demographics
-                if "demographics" in subject:
-                    parts.append(subject["demographics"])
+                if "demographics" in subject and subject["demographics"]:
+                    demo = subject["demographics"]
+                    parts.append(str(demo) if not isinstance(demo, dict) else str(demo.get('description', demo)))
                 
                 # Physical description
-                if "physical_description" in subject:
-                    parts.append(subject["physical_description"])
+                if "physical_description" in subject and subject["physical_description"]:
+                    phys = subject["physical_description"]
+                    parts.append(str(phys) if not isinstance(phys, dict) else str(phys.get('description', phys)))
                 
                 # Clothing
-                if "clothing" in subject:
-                    parts.append(f"wearing {subject['clothing']}")
+                if "clothing" in subject and subject["clothing"]:
+                    cloth = subject["clothing"]
+                    cloth_str = str(cloth) if not isinstance(cloth, dict) else str(cloth.get('description', cloth))
+                    parts.append(f"wearing {cloth_str}")
                 
                 # Body language
-                if "body_language" in subject:
-                    parts.append(f"with {subject['body_language']}")
+                if "body_language" in subject and subject["body_language"]:
+                    body_lang = subject["body_language"]
+                    body_str = str(body_lang) if not isinstance(body_lang, dict) else str(body_lang.get('description', body_lang))
+                    parts.append(f"with {body_str}")
                 
                 if parts:
-                    details.append(", ".join(parts))
+                    # Ensure all parts are strings
+                    parts_str = [str(p) for p in parts]
+                    details.append(", ".join(parts_str))
         
         return "; ".join(details) if details else None
     

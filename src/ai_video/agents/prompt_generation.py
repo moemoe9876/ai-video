@@ -311,7 +311,10 @@ class PromptGenerationAgent:
                 return f"{entity.name}: {entity.appearance}"
             return entity.name
         
-        return "Subject"
+        if scene.human_subjects:
+            return self._summarize_human_subject(scene.human_subjects[0])
+        
+        return "Primary subject"
     
     def _extract_scene_subject(self, scene: Scene) -> str:
         """Extract subject from scene."""
@@ -405,115 +408,71 @@ class PromptGenerationAgent:
         if not scene.physical_world:
             return None
         
-        details = []
         pw = scene.physical_world
+        sections = []
         
-        # Architecture
-        if "architecture" in pw and pw["architecture"]:
-            arch = pw["architecture"]
-            if isinstance(arch, list):
-                details.append(f"Architecture: {', '.join(str(a) for a in arch)}")
-            else:
-                details.append(f"Architecture: {arch}")
+        architecture = pw.get("architecture")
+        if architecture:
+            arch_items = architecture if isinstance(architecture, list) else [architecture]
+            arch_descriptions = [self._describe_architecture(item) for item in arch_items]
+            arch_descriptions = [d for d in arch_descriptions if d]
+            if arch_descriptions:
+                sections.append("Architecture: " + "; ".join(arch_descriptions))
         
-        # Signs and text
-        if "signs_text" in pw and pw["signs_text"]:
-            signs = pw["signs_text"]
-            if isinstance(signs, list):
-                sign_strs = []
-                for sign in signs:
-                    if isinstance(sign, dict):
-                        content = sign.get('content', '')
-                        lang = sign.get('language', '')
-                        sign_type = sign.get('type', '')
-                        sign_strs.append(f"'{content}' ({lang}, {sign_type})" if lang and sign_type else content)
-                    else:
-                        sign_strs.append(str(sign))
-                if sign_strs:
-                    details.append(f"Signage: {'; '.join(sign_strs)}")
-            else:
-                details.append(f"Signage: {signs}")
+        signage = pw.get("signs_text") or pw.get("signs") or pw.get("signage")
+        if signage:
+            sign_items = signage if isinstance(signage, list) else [signage]
+            sign_descriptions = [self._describe_sign(item) for item in sign_items]
+            sign_descriptions = [d for d in sign_descriptions if d]
+            if sign_descriptions:
+                sections.append("Signage: " + "; ".join(sign_descriptions))
         
-        # Vehicles
-        if "vehicles" in pw and pw["vehicles"]:
-            vehicles = pw["vehicles"]
-            if isinstance(vehicles, list):
-                vehicle_strs = []
-                for vehicle in vehicles:
-                    if isinstance(vehicle, dict):
-                        make = vehicle.get('make_model_estimate', vehicle.get('type', ''))
-                        color = vehicle.get('color', '')
-                        position = vehicle.get('position', '')
-                        vehicle_strs.append(f"{color} {make} {position}" if color and position else f"{color} {make}" if color else make)
-                    else:
-                        vehicle_strs.append(str(vehicle))
-                if vehicle_strs:
-                    details.append(f"Vehicles: {', '.join(vehicle_strs)}")
-            else:
-                details.append(f"Vehicles: {vehicles}")
+        vehicles = pw.get("vehicles")
+        if vehicles:
+            vehicle_items = vehicles if isinstance(vehicles, list) else [vehicles]
+            vehicle_descriptions = [self._describe_vehicle(item) for item in vehicle_items]
+            vehicle_descriptions = [d for d in vehicle_descriptions if d]
+            if vehicle_descriptions:
+                sections.append("Vehicles: " + "; ".join(vehicle_descriptions))
         
-        # Objects
-        if "objects" in pw and pw["objects"]:
-            objects = pw["objects"]
-            if isinstance(objects, str):
-                details.append(f"Objects: {objects}")
-            elif isinstance(objects, list):
-                details.append(f"Objects: {', '.join(str(o) for o in objects)}")
+        objects = pw.get("objects") or pw.get("props")
+        if objects:
+            object_items = objects if isinstance(objects, list) else [objects]
+            object_descriptions = [self._describe_object(item) for item in object_items]
+            object_descriptions = [d for d in object_descriptions if d]
+            if object_descriptions:
+                sections.append("Objects: " + "; ".join(object_descriptions))
         
-        # Infrastructure
-        if "infrastructure" in pw and pw["infrastructure"]:
-            infra = pw["infrastructure"]
-            if isinstance(infra, str):
-                details.append(f"Infrastructure: {infra}")
-            elif isinstance(infra, list):
-                details.append(f"Infrastructure: {', '.join(str(i) for i in infra)}")
+        infrastructure = pw.get("infrastructure")
+        if infrastructure:
+            infra_items = infrastructure if isinstance(infrastructure, list) else [infrastructure]
+            infra_descriptions = [self._describe_infrastructure(item) for item in infra_items]
+            infra_descriptions = [d for d in infra_descriptions if d]
+            if infra_descriptions:
+                sections.append("Infrastructure: " + "; ".join(infra_descriptions))
         
-        return "; ".join(details) if details else None
+        vegetation = pw.get("vegetation")
+        if vegetation:
+            veg_items = vegetation if isinstance(vegetation, list) else [vegetation]
+            veg_descriptions = [self._clean_text(item) for item in veg_items if item]
+            veg_descriptions = [d for d in veg_descriptions if d]
+            if veg_descriptions:
+                sections.append("Vegetation: " + "; ".join(veg_descriptions))
+        
+        return " ".join(sections) if sections else None
     
     def _extract_human_subjects_details(self, scene: Scene) -> str:
         """Extract detailed human subject information."""
         if not scene.human_subjects:
             return None
         
-        details = []
+        descriptions = []
         for subject in scene.human_subjects:
-            if isinstance(subject, dict):
-                parts = []
-                
-                # Count and position
-                if "count" in subject:
-                    parts.append(f"{subject['count']} person(s)")
-                if "position" in subject:
-                    parts.append(f"positioned {subject['position']}")
-                
-                # Demographics
-                if "demographics" in subject and subject["demographics"]:
-                    demo = subject["demographics"]
-                    parts.append(str(demo) if not isinstance(demo, dict) else str(demo.get('description', demo)))
-                
-                # Physical description
-                if "physical_description" in subject and subject["physical_description"]:
-                    phys = subject["physical_description"]
-                    parts.append(str(phys) if not isinstance(phys, dict) else str(phys.get('description', phys)))
-                
-                # Clothing
-                if "clothing" in subject and subject["clothing"]:
-                    cloth = subject["clothing"]
-                    cloth_str = str(cloth) if not isinstance(cloth, dict) else str(cloth.get('description', cloth))
-                    parts.append(f"wearing {cloth_str}")
-                
-                # Body language
-                if "body_language" in subject and subject["body_language"]:
-                    body_lang = subject["body_language"]
-                    body_str = str(body_lang) if not isinstance(body_lang, dict) else str(body_lang.get('description', body_lang))
-                    parts.append(f"with {body_str}")
-                
-                if parts:
-                    # Ensure all parts are strings
-                    parts_str = [str(p) for p in parts]
-                    details.append(", ".join(parts_str))
+            desc = self._describe_human_subject(subject)
+            if desc:
+                descriptions.append(desc)
         
-        return "; ".join(details) if details else None
+        return "; ".join(descriptions) if descriptions else None
     
     def _extract_texture_details(self, scene: Scene) -> str:
         """Extract texture and material details."""
@@ -530,6 +489,329 @@ class PromptGenerationAgent:
             return textures
         
         return None
+
+    def _clean_text(self, value) -> str:
+        if value is None:
+            return ""
+        text = str(value).strip()
+        if text.endswith("."):
+            text = text[:-1]
+        return text
+
+    def _describe_architecture(self, item) -> Optional[str]:
+        if not item:
+            return None
+        if not isinstance(item, dict):
+            return self._clean_text(item)
+        label = item.get("id") or item.get("name")
+        core_parts = []
+        for key in ["type", "style", "materials", "condition", "height"]:
+            value = self._clean_text(item.get(key))
+            if value:
+                if key == "height":
+                    core_parts.append(f"height {value}")
+                else:
+                    core_parts.append(value)
+        position_parts = []
+        for key in ["position_relative_to_subject", "position_relative_to_camera", "orientation"]:
+            value = self._clean_text(item.get(key))
+            if value:
+                position_parts.append(value)
+        if position_parts:
+            core_parts.append("; ".join(position_parts))
+        description = ", ".join([part for part in core_parts if part])
+        if label:
+            label_text = self._clean_text(label).replace("_", " ")
+            return f"{label_text}: {description}" if description else label_text
+        return description
+
+    def _describe_sign(self, item) -> Optional[str]:
+        if not item:
+            return None
+        if not isinstance(item, dict):
+            return self._clean_text(item)
+        text = self._clean_text(item.get("text") or item.get("content"))
+        translation = self._clean_text(item.get("translation"))
+        sign_type = self._clean_text(item.get("type"))
+        language = self._clean_text(item.get("language"))
+        colors = self._clean_text(item.get("colors"))
+        lighting = self._clean_text(item.get("lighting"))
+        location = self._clean_text(item.get("location"))
+        brand = self._clean_text(item.get("brand"))
+        parts = []
+        if text:
+            if translation and translation.lower() != text.lower():
+                parts.append(f"\"{text}\" ({translation})")
+            else:
+                parts.append(f"\"{text}\"")
+        if brand and brand.lower() not in text.lower():
+            parts.append(f"brand {brand}")
+        if sign_type:
+            parts.append(sign_type)
+        if language:
+            parts.append(f"language: {language}")
+        if colors:
+            parts.append(f"colors {colors}")
+        if lighting:
+            parts.append(f"lighting {lighting}")
+        if location:
+            parts.append(f"located {location}")
+        return ", ".join([p for p in parts if p])
+
+    def _describe_vehicle(self, item) -> Optional[str]:
+        if not item:
+            return None
+        if not isinstance(item, dict):
+            return self._clean_text(item)
+        color = self._clean_text(item.get("color"))
+        make_model = self._clean_text(item.get("make_model") or item.get("make_model_estimate") or item.get("model") or item.get("model_guess"))
+        vehicle_type = self._clean_text(item.get("type"))
+        brand = self._clean_text(item.get("brand"))
+        year = self._clean_text(item.get("year") or item.get("generation"))
+        condition = self._clean_text(item.get("condition"))
+        position = self._clean_text(item.get("position"))
+        distance = self._clean_text(item.get("distance_from_camera"))
+        motion = self._clean_text(item.get("movement"))
+        license_plate = self._clean_text(item.get("license_plate"))
+        parts = []
+        descriptor = ""
+        if color:
+            descriptor += color + " "
+        if brand and (not make_model or brand.lower() not in make_model.lower()):
+            descriptor += brand + " "
+        if make_model:
+            descriptor += make_model
+        elif vehicle_type:
+            descriptor += vehicle_type
+        descriptor = descriptor.strip()
+        if descriptor:
+            parts.append(descriptor)
+        elif vehicle_type:
+            parts.append(vehicle_type)
+        if year:
+            parts.append(year)
+        if condition:
+            parts.append(condition)
+        if position:
+            parts.append(position)
+        if distance:
+            parts.append(f"approximately {distance}")
+        if motion:
+            parts.append(motion)
+        if license_plate:
+            parts.append(f"license plate {license_plate}")
+        return ", ".join([p for p in parts if p])
+
+    def _describe_object(self, item) -> Optional[str]:
+        if not item:
+            return None
+        if isinstance(item, str):
+            return self._clean_text(item)
+        if isinstance(item, dict):
+            obj_type = self._clean_text(item.get("type") or item.get("name"))
+            brand = self._clean_text(item.get("brand"))
+            make_model = self._clean_text(item.get("make_model") or item.get("make") or item.get("model"))
+            description = self._clean_text(item.get("description"))
+            position = self._clean_text(item.get("position"))
+            color = self._clean_text(item.get("color"))
+            quantity = self._clean_text(item.get("count") or item.get("quantity"))
+            parts = []
+            label = obj_type or "object"
+            if brand and brand.lower() not in label.lower():
+                label = f"{brand} {label}".strip()
+            if make_model and make_model.lower() not in label.lower():
+                label = f"{label} ({make_model})"
+            if color:
+                label = f"{color} {label}".strip()
+            parts.append(label)
+            if quantity:
+                parts.append(f"quantity: {quantity}")
+            if description:
+                parts.append(description)
+            if position:
+                parts.append(position)
+            return ", ".join([p for p in parts if p])
+        return None
+
+    def _describe_infrastructure(self, item) -> Optional[str]:
+        if not item:
+            return None
+        if isinstance(item, dict):
+            desc_parts = []
+            for key, value in item.items():
+                clean_val = self._clean_text(value)
+                if clean_val:
+                    desc_parts.append(f"{key}: {clean_val}")
+            return ", ".join(desc_parts)
+        return self._clean_text(item)
+
+    def _describe_human_subject(self, subject) -> Optional[str]:
+        """Extract COMPLETE human subject description including all available fields."""
+        if not subject:
+            return None
+        if not isinstance(subject, dict):
+            return self._clean_text(subject)
+        
+        parts = []
+        
+        # Core identity
+        identity = self._format_demographics(subject.get("count"), subject.get("demographics"))
+        physical = self._format_physical_description(subject.get("physical_description"))
+        if identity and physical:
+            parts.append(f"{identity} ({physical})")
+        elif identity:
+            parts.append(identity)
+        elif physical:
+            parts.append(physical)
+        
+        # Position (with START/END states)
+        position = self._format_position(subject.get("position") or subject.get("position_in_frame"))
+        if position:
+            parts.append(position)
+        
+        # Clothing (COMPLETE inventory)
+        clothing = self._format_clothing(subject.get("clothing"))
+        if clothing:
+            parts.append(f"wearing {clothing}")
+        
+        # Surface
+        surface = self._clean_text(subject.get("surface_on") or (subject.get("position", {}).get("surface") if isinstance(subject.get("position"), dict) else None))
+        if surface:
+            parts.append(f"on {surface}")
+        
+        # Action and movement
+        action = self._clean_text(subject.get("action"))
+        if action:
+            parts.append(action)
+        
+        # Body language and posture
+        body_language = self._clean_text(subject.get("body_language"))
+        if body_language:
+            parts.append(body_language)
+        
+        # Movement physics (hair, clothing movement, shadows)
+        physics = self._format_physics(subject.get("physics") or subject.get("movement_physics"))
+        if physics:
+            parts.append(f"physics: {physics}")
+        
+        # Body positioning & physical interactions with other subjects
+        interaction = self._clean_text(subject.get("physical_interaction") or subject.get("body_positioning"))
+        if interaction:
+            parts.append(f"interaction: {interaction}")
+        
+        # Transformation description (for first+last frame)
+        transform = self._clean_text(subject.get("transformation_description"))
+        if transform:
+            parts.append(f"movement: {transform}")
+        
+        return "; ".join([p for p in parts if p])
+
+    def _format_demographics(self, count, demographics) -> Optional[str]:
+        count_text = None
+        if isinstance(count, (int, float)):
+            if count > 1:
+                count_text = f"{int(count)} people"
+        elif count:
+            count_text = self._clean_text(count)
+        if isinstance(demographics, dict):
+            demo_parts = []
+            age = self._clean_text(demographics.get("age_group"))
+            gender = self._clean_text(demographics.get("gender_presentation"))
+            ethnicity = self._clean_text(demographics.get("ethnicity"))
+            if age:
+                demo_parts.append(age)
+            if gender:
+                demo_parts.append(gender)
+            if ethnicity:
+                demo_parts.append(ethnicity)
+            demo_text = " ".join(demo_parts)
+        else:
+            demo_text = self._clean_text(demographics)
+        if count_text and demo_text:
+            return f"{count_text} {demo_text}"
+        return demo_text or count_text
+
+    def _format_physical_description(self, physical) -> Optional[str]:
+        if isinstance(physical, dict):
+            parts = []
+            for key in ["height", "build", "hair", "skin_tone", "facial_hair", "facial_features"]:
+                value = self._clean_text(physical.get(key))
+                if value:
+                    parts.append(value)
+            return ", ".join(parts)
+        return self._clean_text(physical)
+
+    def _format_clothing(self, clothing) -> Optional[str]:
+        if isinstance(clothing, dict):
+            order = ["upper_body", "mid_layer", "outer_layer", "lower_body", "footwear", "accessories", "headwear"]
+            parts = []
+            for key in order:
+                value = clothing.get(key)
+                if value:
+                    parts.append(self._clean_text(value))
+            return "; ".join(parts)
+        return self._clean_text(clothing)
+
+    def _format_position(self, position) -> Optional[str]:
+        """Format position with START/END states for first+last frame generation."""
+        if isinstance(position, dict):
+            start = self._clean_text(position.get("start_state"))
+            end = self._clean_text(position.get("end_state"))
+            transform = self._clean_text(position.get("transformation_description"))
+            surface = self._clean_text(position.get("surface"))
+            parts = []
+            
+            # If we have both start and end states (for first+last frame)
+            if start and end and start != end:
+                parts.append(f"STARTS: {start}")
+                parts.append(f"ENDS: {end}")
+                if transform:
+                    parts.append(f"MOVEMENT: {transform}")
+            elif start:
+                parts.append(f"positioned {start}")
+            elif end:
+                parts.append(f"positioned {end}")
+            
+            if surface:
+                parts.append(f"on {surface}")
+            
+            return "; ".join(parts)
+        return self._clean_text(position)
+
+    def _format_physics(self, physics) -> Optional[str]:
+        if isinstance(physics, dict):
+            parts = []
+            for key, value in physics.items():
+                clean_val = self._clean_text(value)
+                if clean_val:
+                    parts.append(f"{key}: {clean_val}")
+            return "; ".join(parts)
+        return self._clean_text(physics)
+
+    def _summarize_human_subject(self, subject) -> str:
+        if not isinstance(subject, dict):
+            return self._clean_text(subject) or "Primary subject"
+        identity = self._format_demographics(subject.get("count"), subject.get("demographics"))
+        physical = self._format_physical_description(subject.get("physical_description"))
+        clothing = subject.get("clothing")
+        clothing_summary = None
+        if isinstance(clothing, dict):
+            upper = self._clean_text(clothing.get("upper_body"))
+            lower = self._clean_text(clothing.get("lower_body"))
+            footwear = self._clean_text(clothing.get("footwear"))
+            pieces = [p for p in [upper, lower, footwear] if p]
+            if pieces:
+                clothing_summary = ", ".join(pieces)
+        else:
+            clothing_summary = self._clean_text(clothing)
+        summary_parts = []
+        if identity:
+            summary_parts.append(identity)
+        elif physical:
+            summary_parts.append(physical)
+        if clothing_summary:
+            summary_parts.append(f"wearing {clothing_summary}")
+        return " ".join(summary_parts) if summary_parts else (physical or "Primary subject")
     
     def _should_use_first_last_frame(self, scene: Scene, shot: Shot) -> bool:
         """

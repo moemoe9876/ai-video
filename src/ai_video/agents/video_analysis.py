@@ -64,7 +64,9 @@ class VideoAnalysisAgent:
             report = self._build_report(response, video_id, str(video_source))
             
             if save_report:
-                report_path = path_builder.get_report_path(video_id)
+                # Use the video_id from the report (which may be Gemini-generated) for the filename
+                report_video_id = report.video_id if hasattr(report, 'video_id') and report.video_id else video_id
+                report_path = path_builder.get_report_path(report_video_id)
                 save_model(report, report_path)
                 logger.info(f"Report saved to: {report_path}")
             

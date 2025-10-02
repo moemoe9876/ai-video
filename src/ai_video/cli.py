@@ -11,6 +11,7 @@ from rich import print as rprint
 
 from .agents.video_analysis import VideoAnalysisAgent
 from .agents.prompt_generation import PromptGenerationAgent
+from .agents.reimagination_agent import ReimaginationAgent
 from .pipeline.orchestrator import PipelineOrchestrator
 from .pipeline.export import PromptExporter
 from .models import VideoReport
@@ -198,6 +199,52 @@ def run_all(
         raise typer.Exit(code=1)
     except Exception as e:
         console.print(f"[bold red]✗ Error:[/bold red] {e}")
+        if verbose:
+            import traceback
+            console.print(traceback.format_exc())
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def reimagine(
+    input: str = typer.Option(..., "--input", "-i", help="Path to prompts_detailed.md"),
+    style: Optional[str] = typer.Option(None, "--style", "-s", help="Global style directive"),
+    num_variants: int = typer.Option(3, "--num-variants", "-n", help="Variants per scene (3-5)"),
+    output: Optional[str] = typer.Option(None, "--output", "-o", help="Directory for outputs"),
+    model: Optional[str] = typer.Option(None, "--model", help="Override Gemini model"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
+) -> None:
+    """Generate creative prompt variants for an existing prompt pack."""
+    logger = setup_logger("ai_video.cli", level="DEBUG" if verbose else "INFO")
+
+    try:
+        console.print(f"[bold cyan]Reimagining prompts from:[/bold cyan] {input}")
+        agent = ReimaginationAgent(model=model)
+        result = agent.generate_reimagined_prompts(
+            input_file=input,
+            style=style,
+            num_variants=num_variants,
+            output_dir=output,
+        )
+
+        artifacts = result.get("artifacts", {})
+
+        console.print(f"\n[bold green]✓ Reimagination complete![/bold green]")
+        console.print(f"[cyan]Scenes processed:[/cyan] {result['total_scenes']}")
+        console.print(f"[cyan]Variants per scene:[/cyan] {result['num_variants_per_scene']}")
+        console.print(f"[cyan]Total variants:[/cyan] {result['total_variants']}")
+        console.print(f"[cyan]Global style:[/cyan] {result['global_style']['name']}")
+
+        if artifacts:
+            console.print("\n[bold]Artifacts:[/bold]")
+            for key, value in artifacts.items():
+                console.print(f"  {key}: {value}")
+
+    except ValidationError as exc:
+        console.print(f"[bold red]✗ Validation error:[/bold red] {exc}")
+        raise typer.Exit(code=1)
+    except Exception as exc:
+        console.print(f"[bold red]✗ Error:[/bold red] {exc}")
         if verbose:
             import traceback
             console.print(traceback.format_exc())

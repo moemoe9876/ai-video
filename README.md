@@ -27,6 +27,12 @@ AI-powered video analysis and prompt generation system for recreating videos wit
 - **File API**: Automatic handling of large videos
 - **Pipeline Management**: Complete automated workflow with checkpoints
 
+### 🎨 Creative Prompt Reimagination
+- **Variant Generator**: Produce 3–5 creative reinterpretations for every scene
+- **Global Style Profiles**: Apply user directives or auto-selected cinematic directions
+- **JSON + Markdown Outputs**: Emits `variant_prompts.json` and `variant_report.md`
+- **Standalone Agent**: Run via module CLI or `ai-video reimagine`
+
 ## Installation
 
 ### Prerequisites
@@ -141,6 +147,29 @@ Output:
 - `assets/prompts/my_commercial/prompts.md` - Human-readable prompts
 - `assets/prompts/my_commercial/prompts.json` - Machine-readable format
 - `assets/prompts/my_commercial/shot_list.md` - Shot-by-shot breakdown
+
+### Reimagine Existing Prompts
+
+```bash
+# Auto-select a cohesive creative direction
+ai-video reimagine --input assets/prompts/VIDEO_ID/prompts_detailed.md
+
+# Force a global directive and variant count
+ai-video reimagine \
+  --input assets/prompts/VIDEO_ID/prompts_detailed.md \
+  --style "anime cyberpunk tokyo" \
+  --num-variants 4
+
+# Run the standalone agent module directly
+python -m ai_video.agents.reimagination_agent \
+  --input assets/prompts/VIDEO_ID/prompts_detailed.md \
+  --output assets/prompts/VIDEO_ID
+```
+
+Output:
+- `variant_prompts.json` – Structured `ReimaginationResult` with per-scene variants
+- `variant_report.md` – Concise operator summary grouped by scene
+- User-supplied directives are respected across every scene; omit `--style` to let the agent choose a cohesive look and document it in the global style profile.
 
 ### Analyze YouTube Video Clip
 

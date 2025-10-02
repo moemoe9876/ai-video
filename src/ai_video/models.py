@@ -228,7 +228,7 @@ class PromptBundle(BaseModel):
     shot_descriptions: list[str] = Field(default_factory=list)
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.now)
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -241,5 +241,120 @@ class PromptBundle(BaseModel):
                 "shot_descriptions": ["Woman enters kitchen", "Close-up of coffee mug"],
                 "notes": "Focus on warm morning atmosphere",
                 "created_at": "2024-01-01T12:00:00"
+            }
+        }
+
+
+class GlobalStyleProfile(BaseModel):
+    """Shared creative direction applied to reimagined variants."""
+
+    name: str = Field(description="Readable label for the global direction")
+    description: Optional[str] = Field(default=None, description="Short description of the style")
+    keywords: list[str] = Field(default_factory=list, description="Slug-friendly keywords that summarize the style")
+    palette: Optional[str] = Field(default=None, description="Color palette shorthand")
+    lighting: Optional[str] = Field(default=None, description="Signature lighting guidance")
+    camera_direction: Optional[str] = Field(default=None, description="Camera movement/approach guidance")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "Neon-soaked retrofuturism",
+                "description": "Electric 1980s night city, analog grain with shimmering reflections",
+                "keywords": ["neon-noir", "retro-future", "analog-grain"],
+                "palette": "teal-magenta with sodium highlights",
+                "lighting": "Moody sodium vapor wash with neon kickers",
+                "camera_direction": "Handheld dolly pushes with roll-ins"
+            }
+        }
+
+
+class ReimaginedVariant(BaseModel):
+    """Single reimagined prompt variant for a scene."""
+
+    variant_id: str = Field(description="Variant identifier within the scene")
+    title: str = Field(description="Short handle for the variant")
+    prompt: str = Field(description="Generation-ready prompt text")
+    style_notes: Optional[str] = Field(default=None, description="Supplemental notes on style or mood")
+    camera_focus: Optional[str] = Field(default=None, description="Camera direction or movement emphasis")
+    lighting_focus: Optional[str] = Field(default=None, description="Lighting tone guidance")
+    tags: list[str] = Field(default_factory=list, description="Keyword tags summarizing the variant")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "variant_id": "1",
+                "title": "Midnight rain neon ride",
+                "prompt": "Young couple racing through rain-soaked Shibuya on a vintage motorcycle, drenched neon signage, reflections shimmering on pavement, cinematic motion blur, 35mm anamorphic frame",
+                "style_notes": "Blend Blade Runner color palette with Tokyo street photography grit",
+                "camera_focus": "Low-slung tracking cam gliding inches above the asphalt",
+                "lighting_focus": "Sodium vapor base with magenta neon spill",
+                "tags": ["neon-noir", "rain", "tokyo", "anamorphic"]
+            }
+        }
+
+
+class ReimaginedScene(BaseModel):
+    """Reimagined variants for a single source scene."""
+
+    scene_index: int = Field(description="Index of the original scene")
+    scene_title: Optional[str] = Field(default=None, description="Title or short label for the scene")
+    location: Optional[str] = Field(default=None, description="Original location context")
+    original_description: Optional[str] = Field(default=None, description="Summary from the source scene")
+    original_prompt: Optional[str] = Field(default=None, description="Base prompt extracted from the detailed markdown")
+    mood: Optional[str] = Field(default=None, description="Original mood annotation")
+    reimagined_variants: list[ReimaginedVariant] = Field(default_factory=list, description="Variant prompts for this scene")
+    notes: Optional[str] = Field(default=None, description="Optional cross-variant notes")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "scene_index": 3,
+                "scene_title": "Roller rink embrace",
+                "location": "Indoor roller rink with mirror ball",
+                "original_description": "Couple holds hands while skating under warm lights",
+                "mood": "Playful, nostalgic",
+                "reimagined_variants": [],
+                "notes": "Keep motion energy consistent across variants"
+            }
+        }
+
+
+class ReimaginationResult(BaseModel):
+    """Aggregate output of the ReimaginationAgent run."""
+
+    video_id: str = Field(description="Video identifier associated with the prompts")
+    source_file: str = Field(description="Path to the source markdown file")
+    generated_at: datetime = Field(description="UTC timestamp when variants were generated")
+    requested_style: Optional[str] = Field(default=None, description="User-provided style directive if any")
+    global_style: GlobalStyleProfile
+    num_variants_per_scene: int = Field(description="Requested number of variants per scene")
+    total_scenes: int = Field(description="Number of scenes processed")
+    total_variants: int = Field(description="Total number of variants generated")
+    scenes: list[ReimaginedScene] = Field(default_factory=list)
+    artifacts: dict[str, str] = Field(default_factory=dict, description="Output artifact paths keyed by type")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "video_id": "east_asian_90s_urban_romance_montage",
+                "source_file": "assets/prompts/east_asian_90s_urban_romance_montage/prompts_detailed.md",
+                "generated_at": "2024-10-02T06:30:00Z",
+                "requested_style": "anime cyberpunk Tokyo",
+                "global_style": {
+                    "name": "Anime cyberpunk Tokyo",
+                    "description": "Electric night city awash in holographic signage and rainy reflections",
+                    "keywords": ["anime-cyberpunk", "holographic", "rain"],
+                    "palette": "teal-magenta with golden highlights",
+                    "lighting": "Moody volumetric neon",
+                    "camera_direction": "Dynamic dolly sweeps with crane reveals"
+                },
+                "num_variants_per_scene": 3,
+                "total_scenes": 5,
+                "total_variants": 15,
+                "scenes": [],
+                "artifacts": {
+                    "json": "assets/prompts/video_id/variant_prompts.json",
+                    "markdown": "assets/prompts/video_id/variant_report.md"
+                }
             }
         }

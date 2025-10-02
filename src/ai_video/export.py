@@ -510,13 +510,50 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path, bundles: 
             # Location context
             prompt_parts.append(f"Location: {scene.location}")
             
-            # Camera details from first shot
+            # CAMERA POSITIONING - CRITICAL FOR ACCURATE RECREATION
+            # Include ALL camera details from first shot to ensure exact positioning match
             if scene.shots:
                 shot = scene.shots[0]
+                
+                # Build comprehensive camera positioning description
+                camera_parts = []
+                
+                # Shot type (wide, medium, close-up)
                 if shot.shot_type:
-                    prompt_parts.append(f"Shot: {shot.shot_type}")
+                    camera_parts.append(f"{shot.shot_type} shot")
+                
+                # Exact camera position (most important!)
                 if shot.camera_position:
-                    prompt_parts.append(f"Camera: {shot.camera_position}")
+                    camera_parts.append(shot.camera_position)
+                
+                # Camera angle in degrees
+                if shot.camera_angle_degrees:
+                    camera_parts.append(f"angle: {shot.camera_angle_degrees}")
+                
+                # Distance from subject
+                if shot.camera_distance_meters:
+                    camera_parts.append(f"distance: {shot.camera_distance_meters}")
+                
+                # Camera height from ground
+                if shot.camera_height_meters:
+                    camera_parts.append(f"height: {shot.camera_height_meters}")
+                
+                # Lens focal length (affects field of view and perspective)
+                if shot.lens_focal_length:
+                    camera_parts.append(f"lens: {shot.lens_focal_length}")
+                
+                # Depth of field (affects what's in focus)
+                if shot.depth_of_field:
+                    camera_parts.append(f"DOF: {shot.depth_of_field}")
+                
+                if camera_parts:
+                    prompt_parts.append(f"Camera: {', '.join(camera_parts)}")
+                
+                # Subject position in frame (where subject appears in the composition)
+                if shot.subject_position_frame:
+                    prompt_parts.append(f"Subject position: {shot.subject_position_frame}")
+                
+                # Spatial relationships (3D space understanding)
                 if shot.spatial_relationships:
                     prompt_parts.append(f"Spatial: {shot.spatial_relationships}")
             

@@ -1,5 +1,180 @@
 # Video Analysis Blueprint - ULTRA-PRECISION Recreation Guide for 99% Accuracy
 
+## 🚨 CRITICAL: SCENE SEGMENTATION REQUIREMENTS 🚨
+
+**YOU MUST SEGMENT THE VIDEO INTO INDIVIDUAL, GRANULAR SCENES - NOT MONTAGES!**
+
+**⚠️ SCENE DETECTION RULES - READ CAREFULLY:**
+
+1. **EACH UNIQUE FRAME/SHOT = SEPARATE SCENE**
+   - If the location changes → NEW SCENE
+   - If the subject changes → NEW SCENE  
+   - If the camera angle changes significantly → NEW SCENE
+   - If the action/activity changes → NEW SCENE
+   - If lighting conditions change → NEW SCENE
+
+2. **DO NOT BUNDLE MULTIPLE LOCATIONS INTO ONE SCENE**
+   - ❌ WRONG: "Scene 3: Stadium, restaurant, taco stand, movie theater" (4 locations = 4 scenes!)
+   - ✅ CORRECT: "Scene 3: Stadium", "Scene 4: Restaurant", "Scene 5: Taco stand", "Scene 6: Movie theater"
+
+3. **DO NOT COMPRESS MONTAGES INTO ONE SCENE**
+   - ❌ WRONG: "Scene 2: 12-pack placed on table, cans dropped in cooler, can opened, poured into glass" (5 distinct moments!)
+   - ✅ CORRECT: 
+     - "Scene 2: 12-pack placed on BBQ table"
+     - "Scene 3: Cans dropped into ice cooler (underwater shot)"
+     - "Scene 4: Can being opened"
+     - "Scene 5: Soda being poured into glass"
+     - "Scene 6: Hero shot of final beverage"
+
+4. **EXTRACT EVERY KEY UNIQUE FRAME INDIVIDUALLY**
+   - Each distinct visual moment should be its own scene
+   - Duration doesn't matter - a 0.5s shot is still a separate scene
+   - Think: "Could I generate this as a single image prompt?" → Then it's ONE scene
+
+5. **TARGET SCENE COUNT**:
+   - 30-second commercial: Aim for 15-25+ scenes (fast-cut ads have many quick scenes)
+   - 60-second video: Aim for 20-40+ scenes
+   - Longer narrative: Scene changes every 2-5 seconds on average
+   - **More scenes = more detailed analysis = better recreation**
+
+6. **SCENE vs SHOT**:
+   - **Scene** = A distinct visual moment with unique location/subject/action
+   - **Shot** = Camera technique within that moment (use shots[] array for camera variations within same scene if needed)
+   - Generally: One scene = one unique visual, not a montage of visuals
+
+**EXAMPLE - CORRECT SEGMENTATION:**
+
+A 30-second Pepsi commercial should look like:
+- Scene 1 (0.0-0.8s): Hand opening refrigerator
+- Scene 2 (0.8-1.5s): Grabbing Pepsi can from fridge
+- Scene 3 (1.5-2.3s): Can moving through party (motion blur shot)
+- Scene 4 (2.3-3.1s): Can placed on table
+- Scene 5 (3.1-3.8s): 12-pack on BBQ table
+- Scene 6 (3.8-4.4s): Underwater shot - cans dropping in ice
+- Scene 7 (4.4-5.0s): Close-up can opening
+- Scene 8 (5.0-5.8s): Soda pouring into glass
+- ... and so on for EACH distinct visual moment
+
+**If your scene count is low (under 10 for a 30s video) → YOU ARE COMPRESSING TOO MUCH!**
+
+---
+
+## 🚨 CRITICAL: CAMERA POSITIONING IS MANDATORY 🚨
+
+**ACCURATE CAMERA POSITIONING IS THE #1 PRIORITY FOR PERFECT RECREATION!**
+
+Without exact camera positioning, the recreation will fail even if everything else is perfect. You MUST analyze and document EVERY camera parameter for EVERY shot.
+
+**⚠️ CAMERA ANALYSIS REQUIREMENTS - NON-NEGOTIABLE:**
+
+1. **EVERY SHOT MUST HAVE ALL CAMERA FIELDS POPULATED**:
+   - ✅ `camera_position` - REQUIRED - Exact position relative to subject
+   - ✅ `camera_angle_degrees` - REQUIRED - Angle measurement (e.g., "0° eye-level", "30° high angle down")
+   - ✅ `camera_distance_meters` - REQUIRED - Distance from subject (e.g., "2-3 meters")
+   - ✅ `camera_height_meters` - REQUIRED - Camera height from ground (e.g., "1.6 meters")
+   - ✅ `subject_position_frame` - REQUIRED - Where subject appears in frame (e.g., "center, lower third")
+   - ✅ `spatial_relationships` - REQUIRED - 3D space description
+   - ✅ `lens_focal_length` - REQUIRED - Estimate from field of view (e.g., "35-50mm", "wide ~24mm")
+   - ✅ `depth_of_field` - REQUIRED - Focus characteristics (e.g., "shallow, background blurred", "deep focus")
+   - ✅ `camera_movement_trajectory` - REQUIRED - Movement path (even if "static, no movement")
+
+2. **HOW TO EXTRACT CAMERA POSITIONING FROM THE VIDEO**:
+
+   **Step 1: Identify Camera Height**
+   - Look at eye-level references (doors, windows, people's heads)
+   - "Camera at subject's eye level = ~1.6-1.7m for average adult"
+   - "Camera below waist level = ~0.8-1.0m (low angle)"
+   - "Camera above head level = ~2.0-2.5m+ (high angle)"
+   
+   **Step 2: Determine Camera Angle**
+   - Look at horizon line and subject's relationship to it
+   - "Horizon at middle of frame, subject centered = 0° eye-level"
+   - "Looking down at subject, can see top of head = 15-45° high angle"
+   - "Looking up at subject, can see under chin = 15-45° low angle"
+   
+   **Step 3: Estimate Distance from Subject**
+   - Use visual perspective cues:
+   - "Close-up (head fills frame) = 0.5-1.5 meters"
+   - "Medium shot (waist-up visible) = 1.5-4 meters"
+   - "Full body visible with some space = 4-7 meters"
+   - "Wide shot (subject small in frame) = 8-15+ meters"
+   
+   **Step 4: Describe Exact Position Relative to Subject**
+   - Don't just say "in front" - be SPECIFIC:
+   - "2 meters directly in front of subject at eye level"
+   - "3 meters to subject's right side, slightly behind"
+   - "5 meters behind and above subject, looking down at 30°"
+   - "Positioned at subject's left, 1 meter away, same height level"
+   
+   **Step 5: Determine Lens Focal Length**
+   - Wide angle (16-35mm): Distortion visible, subject appears smaller, more background visible
+   - Normal (40-60mm): Natural perspective, minimal distortion
+   - Telephoto (70mm+): Compressed perspective, shallow DOF, background closer to subject
+   
+   **Step 6: Analyze Depth of Field**
+   - "Shallow DOF: Subject sharp, background heavily blurred" → Wide aperture (f/1.4-f/2.8)
+   - "Medium DOF: Subject sharp, background slightly soft" → Mid aperture (f/4-f/8)
+   - "Deep DOF: Everything in focus front to back" → Narrow aperture (f/11-f/22)
+
+3. **CAMERA POSITIONING EXAMPLES - STUDY THESE**:
+
+   **Example 1 - Correct Detail:**
+   ```json
+   {
+     "camera_position": "Camera positioned 2.5 meters directly in front of subject, slightly offset 0.5m to the left",
+     "camera_angle_degrees": "Eye-level, approximately 0 degrees, straight-on perspective",
+     "camera_distance_meters": "2.5 meters from subject",
+     "camera_height_meters": "1.65 meters from ground, matching subject's eye level",
+     "subject_position_frame": "Subject centered horizontally, positioned in lower third of frame vertically",
+     "spatial_relationships": "Subject in midground at 2.5m, van in foreground left at 1m, buildings in background 15-20m",
+     "lens_focal_length": "Appears to be 35-50mm equivalent based on natural perspective and minimal distortion",
+     "depth_of_field": "Moderate depth of field, subject in sharp focus, background slightly soft but still detailed",
+     "camera_movement_trajectory": "Tracking left-to-right at approximately 0.5 m/s, maintaining constant 2.5m distance from subject"
+   }
+   ```
+
+   **Example 2 - High Angle Shot:**
+   ```json
+   {
+     "camera_position": "Camera positioned 3 meters in front and 2 meters above subject, looking down",
+     "camera_angle_degrees": "High angle, approximately 35 degrees downward",
+     "camera_distance_meters": "3.5 meters from subject (diagonal distance)",
+     "camera_height_meters": "2.8 meters from ground",
+     "subject_position_frame": "Subject in center frame, appears in middle to upper-middle area due to downward angle",
+     "spatial_relationships": "Subject walking below camera level, ground visible around subject, buildings visible in background 10m+",
+     "lens_focal_length": "Wide angle ~28-35mm based on expansive field of view and slight distortion",
+     "depth_of_field": "Deep depth of field, both subject and ground plane in focus",
+     "camera_movement_trajectory": "Static, locked off from elevated position, no movement"
+   }
+   ```
+
+4. **COMMON MISTAKES TO AVOID**:
+   - ❌ "Camera in front of subject" → TOO VAGUE
+   - ✅ "Camera 2.5 meters directly in front of subject, 0.3m offset right, eye-level height"
+   
+   - ❌ "High angle" → NOT SPECIFIC ENOUGH  
+   - ✅ "High angle, 30 degrees downward, camera 2.5m above ground looking down at subject"
+   
+   - ❌ "Close shot" → MISSING MEASUREMENTS
+   - ✅ "Close-up shot at 1 meter distance, subject's face fills 60% of frame"
+
+5. **WHY THIS MATTERS**:
+   - An AI image generator CANNOT recreate the shot without knowing exact camera positioning
+   - "High angle" could mean 10° or 60° - completely different images!
+   - "In front" could be 1 meter or 10 meters - totally different framing!
+   - Camera position determines perspective, which is IMPOSSIBLE to fix in post-production
+   - **Get the camera wrong = recreation fails, no matter what else is correct**
+
+**BEFORE YOU ANALYZE EACH SHOT:**
+1. Pause and look at the frame
+2. Ask: "Where exactly is the camera positioned in 3D space?"
+3. Ask: "What angle is it looking at the subject?"
+4. Ask: "How far away is it?"
+5. Ask: "What lens could produce this field of view and perspective?"
+6. Document ALL of these with MEASUREMENTS, not vague descriptions
+
+---
+
 ## 🚨 CRITICAL: NO NULL VALUES ALLOWED 🚨
 
 **YOU MUST ANALYZE AND PROVIDE VALUES FOR ALL FIELDS. NULL IS UNACCEPTABLE.**

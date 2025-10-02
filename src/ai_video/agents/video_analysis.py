@@ -160,7 +160,7 @@ class VideoAnalysisAgent:
             "season": scene_data.get("season"),
             "description": scene_data.get("description", ""),
             "mood": scene_data.get("mood"),
-            "lighting": lighting,
+            "lighting": lighting,  # REQUIRED
             "lighting_type": scene_data.get("lighting_type"),
             "lighting_direction": scene_data.get("lighting_direction"),
             "lighting_temperature": scene_data.get("lighting_temperature"),
@@ -168,8 +168,8 @@ class VideoAnalysisAgent:
             "color_temperature": scene_data.get("color_temperature"),
             "film_stock_resemblance": scene_data.get("film_stock_resemblance"),
             "style": scene_data.get("style"),
-            "physical_world": scene_data.get("physical_world"),
-            "human_subjects": scene_data.get("human_subjects"),
+            "physical_world": scene_data.get("physical_world"),  # REQUIRED
+            "human_subjects": scene_data.get("human_subjects") or [],  # REQUIRED - empty list if no people visible
             "texture_details": scene_data.get("texture_details"),
             "shots": shots,
             "key_entities": entities,
@@ -207,15 +207,17 @@ class VideoAnalysisAgent:
             "shot_type": shot_data.get("shot_type"),
             "camera_movement": shot_data.get("camera_movement"),
             "camera_description": shot_data.get("camera_description"),
+            # REQUIRED fields - NO DEFAULTS, Gemini MUST provide these
             "camera_position": dict_to_str(shot_data.get("camera_position")),
             "camera_angle_degrees": dict_to_str(shot_data.get("camera_angle_degrees")),
             "camera_distance_meters": dict_to_str(shot_data.get("camera_distance_meters")),
             "camera_height_meters": dict_to_str(shot_data.get("camera_height_meters")),
+            "subject_position_frame": dict_to_str(shot_data.get("subject_position_frame")),
+            "spatial_relationships": dict_to_str(shot_data.get("spatial_relationships")),
+            # OPTIONAL fields
             "camera_movement_trajectory": dict_to_str(shot_data.get("camera_movement_trajectory")),
             "lens_focal_length": dict_to_str(shot_data.get("lens_focal_length")),
             "depth_of_field": dict_to_str(shot_data.get("depth_of_field")),
-            "subject_position_frame": dict_to_str(shot_data.get("subject_position_frame")),
-            "spatial_relationships": dict_to_str(shot_data.get("spatial_relationships")),
             "motion_physics": dict_to_str(shot_data.get("motion_physics")),
             "entities": entities,
         }

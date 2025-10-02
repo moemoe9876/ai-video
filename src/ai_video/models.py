@@ -60,15 +60,18 @@ class Shot(BaseModel):
     shot_type: Optional[str] = None
     camera_movement: Optional[str] = None
     camera_description: Optional[str] = None
-    camera_position: Optional[str] = Field(default=None, description="Exact camera position relative to subject")
-    camera_angle_degrees: Optional[str] = Field(default=None, description="Camera angle in degrees")
-    camera_distance_meters: Optional[str] = Field(default=None, description="Distance from subject in meters")
-    camera_height_meters: Optional[str] = Field(default=None, description="Height of camera from ground")
+    # REQUIRED FIELDS - Critical for recreation
+    camera_position: str = Field(description="Exact camera position relative to subject - REQUIRED")
+    camera_angle_degrees: str = Field(description="Camera angle in degrees - REQUIRED")
+    camera_distance_meters: str = Field(description="Distance from subject in meters - REQUIRED")
+    camera_height_meters: str = Field(description="Height of camera from ground - REQUIRED")
+    subject_position_frame: str = Field(description="Subject position in frame (thirds, etc.) - REQUIRED")
+    spatial_relationships: str = Field(description="3D spatial relationships - REQUIRED")
+    
+    # OPTIONAL FIELDS - Nice to have
     camera_movement_trajectory: Optional[str] = Field(default=None, description="Detailed movement path")
     lens_focal_length: Optional[str] = Field(default=None, description="Estimated focal length")
     depth_of_field: Optional[str] = Field(default=None, description="Depth of field characteristics")
-    subject_position_frame: Optional[str] = Field(default=None, description="Subject position in frame")
-    spatial_relationships: Optional[str] = Field(default=None, description="3D spatial relationships")
     motion_physics: Optional[str] = Field(default=None, description="Physics of movement in shot")
     entities: list[Entity] = Field(default_factory=list)
     
@@ -100,7 +103,12 @@ class Scene(BaseModel):
     season: Optional[str] = Field(default=None, description="Season if determinable")
     description: str
     mood: Optional[str] = None
-    lighting: Optional[str] = None
+    # REQUIRED FIELDS - Critical for recreation
+    lighting: str = Field(description="Lighting description - REQUIRED")
+    physical_world: dict = Field(description="Physical world details - architecture, signs, vehicles, objects - REQUIRED")
+    human_subjects: list[dict] = Field(default_factory=list, description="Detailed human subject information - REQUIRED (empty list if no people)")
+    
+    # HIGHLY RECOMMENDED FIELDS
     lighting_type: Optional[str] = Field(default=None, description="Specific lighting type from standards")
     lighting_direction: Optional[str] = Field(default=None, description="Direction of light sources")
     lighting_temperature: Optional[str] = Field(default=None, description="Color temperature of lighting")
@@ -108,8 +116,6 @@ class Scene(BaseModel):
     color_temperature: Optional[str] = Field(default=None, description="Overall color temperature")
     film_stock_resemblance: Optional[str] = Field(default=None, description="Which film stock this resembles")
     style: Optional[str] = None
-    physical_world: Optional[dict] = Field(default=None, description="Physical world details - architecture, signs, vehicles, objects")
-    human_subjects: Optional[list[dict]] = Field(default=None, description="Detailed human subject information")
     texture_details: Optional[dict] = Field(default=None, description="Surface and material textures")
     shots: list[Shot] = Field(default_factory=list)
     key_entities: list[Entity] = Field(default_factory=list)

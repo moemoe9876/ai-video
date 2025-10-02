@@ -544,6 +544,31 @@ For EACH person (use the ultra-detailed format from section 3):
   - Movement speed and style
   - Where they're going: "Walking toward camera", "Crossing street left to right"
   - **Surface interaction**: "Feet on concrete sidewalk", "Sitting on motorcycle seat"
+  
+- **START and END STATES** (CRITICAL for video generation):
+  **For ANY movement or transformation, describe BOTH the beginning and ending states:**
+  
+  - **STARTING STATE (First Frame)**:
+    - "Subject starts at 8 meters from camera in background"
+    - "Motorcycle begins at left edge of frame"
+    - "Character facing away from camera initially"
+    - "Door closed at beginning of scene"
+    - "Subject positioned at far end of alley"
+  
+  - **ENDING STATE (Last Frame)**:
+    - "Subject ends at 2 meters from camera in foreground"
+    - "Motorcycle completes pass at right edge of frame"
+    - "Character now facing toward camera"
+    - "Door fully open at end of scene"
+    - "Subject reaches near end of alley"
+  
+  - **TRANSFORMATION DESCRIPTION**:
+    - "Subject walks from background to foreground, approaching camera, distance decreases from 8m to 2m"
+    - "Motorcycle travels left-to-right across frame at constant speed"
+    - "Character turns 180 degrees during shot to face camera"
+    - "Door swings open revealing interior"
+  
+  **Why this matters:** This information is used to generate separate first and last frame images for advanced video generation (Kling 2.1 Pro). Clear start/end states enable precise control.
 - **MOVEMENT PHYSICS**:
   - **Hair movement**: Direction, speed, how it responds to motion/wind
   - **Clothing movement**: How garments flow, billow, or move with their motion
@@ -778,14 +803,22 @@ Provide your analysis in a structured JSON format that matches this schema:
    - What surface they're on (sidewalk, road, grass, etc.)
    - **When 2+ people together**: Describe exact physical relationship and body positioning (see detailed examples in section 3)
 
-4. **PHYSICS OF MOVEMENT IS CRITICAL**:
+4. **START AND END STATES FOR MOVEMENT** (CRITICAL for video generation):
+   For ANY scene with movement or transformation, clearly describe:
+   - **Starting state**: Where subject/object begins (position, distance, orientation)
+   - **Ending state**: Where subject/object ends (position, distance, orientation)
+   - **Transformation**: How they move from start to end
+   - Example: "Subject STARTS at 8m from camera in background, WALKS forward approaching camera, ENDS at 2m in foreground"
+   - This enables generation of precise first and last frame images for Kling 2.1 Pro
+
+5. **PHYSICS OF MOVEMENT IS CRITICAL**:
    - **Hair**: How does hair move with motion? Direction, speed, wind effects
    - **Clothing**: How do garments flow, billow, or move with the subject's motion?
    - **Shadows**: Where do shadows fall? What direction? How long? How hard/soft?
    - **Reflections**: Any reflections visible?
    - Motion speeds in m/s or km/h
 
-5. **BUILDINGS & ENVIRONMENTAL SPATIAL RELATIONSHIPS** (CRITICAL):
+6. **BUILDINGS & ENVIRONMENTAL SPATIAL RELATIONSHIPS** (CRITICAL):
    For EVERY building and object, describe:
    - **Building aesthetics**: Style, era, materials, colors, height, unique identifiers
    - **Position relative to SUBJECT**: Distance, direction, which side
@@ -801,9 +834,9 @@ Provide your analysis in a structured JSON format that matches this schema:
      - "Building is 3x taller than subject"
      - "Alley is 3 meters wide"
 
-6. **READ ALL TEXT**: Attempt to read EVERY visible sign, even partial/blurry text. Even if you can only see "...chen N..." - document it! This is critical for recreation.
+7. **READ ALL TEXT**: Attempt to read EVERY visible sign, even partial/blurry text. Even if you can only see "...chen N..." - document it! This is critical for recreation.
 
-7. **BRAND & LOGO IDENTIFICATION** (CRITICAL):
+8. **BRAND & LOGO IDENTIFICATION** (CRITICAL):
    - **Look for ALL logos, badges, emblems, brand names**
    - **Vehicles**: Identify make, model, and year using visible badges and characteristics
      - "Honda CBR600RR based on visible badge and sport bike styling"
@@ -823,13 +856,13 @@ Provide your analysis in a structured JSON format that matches this schema:
      - Color schemes typical of brands
      - Era-specific features
 
-8. **SURFACE AWARENESS**: Always specify what surface subjects are on:
+9. **SURFACE AWARENESS**: Always specify what surface subjects are on:
    - "Walking on concrete sidewalk"
    - "Standing in the road on asphalt"
    - "Sitting on motorcycle seat"
    - "On gravel path"
 
-9. **BODY POSITIONING & PHYSICAL INTERACTIONS** (CRITICAL for 2+ people):
+10. **BODY POSITIONING & PHYSICAL INTERACTIONS** (CRITICAL for 2+ people):
    When multiple people are together, describe EXACT physical relationship:
    - How they're positioned relative to each other (side-by-side, front-back, distance apart)
    - Physical contact points: "Arms wrapped around waist", "Holding hands", "Shoulder touching"
@@ -837,7 +870,7 @@ Provide your analysis in a structured JSON format that matches this schema:
    - Body angles relative to each other: "Person A faces 0°, Person B faces 270°"
    - Use detailed examples from section 3 (motorcycle riders, walking together, etc.)
 
-10. **DOCUMENT EVERYTHING VISIBLE**: The AI needs EVERY detail:
+11. **DOCUMENT EVERYTHING VISIBLE**: The AI needs EVERY detail:
    - Every person (including background, partial, out-of-focus)
    - Every object (foreground and background)
    - Every building and architectural element
@@ -848,9 +881,9 @@ Provide your analysis in a structured JSON format that matches this schema:
    - All spatial RELATIONSHIPS (subject to building, subject to objects, subjects to each other)
    - Do NOT summarize or skip elements - be exhaustive
 
-11. **USE PROFESSIONAL TERMINOLOGY**: Use correct cinematography, lighting, and color science terms from the standards provided.
+12. **USE PROFESSIONAL TERMINOLOGY**: Use correct cinematography, lighting, and color science terms from the standards provided.
 
-12. **MEASUREMENTS OVER DESCRIPTIONS**: 
+13. **MEASUREMENTS OVER DESCRIPTIONS**: 
     - "3 meters from camera" NOT "close to camera"
     - "30-degree downward angle" NOT "high angle shot"
     - "Subject in right third of frame, lower third vertically" NOT "subject on right"
@@ -859,16 +892,17 @@ Provide your analysis in a structured JSON format that matches this schema:
     - "White Toyota HiAce H100 van, 1990s generation" NOT "white van"
     - "Building 5 meters behind subject" NOT "building in background"
     - "Driver leans forward 15°, passenger matches angle" NOT "both leaning"
+    - "STARTS at 8m, ENDS at 2m" NOT "gets closer"
 
-13. **CONSISTENCY**: Maintain exact names and descriptions for recurring elements across all scenes.
+14. **CONSISTENCY**: Maintain exact names and descriptions for recurring elements across all scenes.
 
-14. **EDUCATED GUESSES ARE ENCOURAGED**: If you can see partial information:
+15. **EDUCATED GUESSES ARE ENCOURAGED**: If you can see partial information:
     - "Appears to be Honda CB series based on visible tank shape and exhaust"
     - "Likely 7-Eleven based on green and orange color scheme"
     - "Appears to be iPhone based on camera layout, possibly 12 or 13 generation"
     - Use context clues, design language, and partial features to make informed identifications
 
-15. **NO ASSUMPTIONS ON UNCERTAIN DETAILS**: If you truly can't determine something after attempting identification, state "not visible" or "indeterminable" rather than making random guesses.
+16. **NO ASSUMPTIONS ON UNCERTAIN DETAILS**: If you truly can't determine something after attempting identification, state "not visible" or "indeterminable" rather than making random guesses.
 
 ---
 

@@ -140,30 +140,101 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path, bundles: 
                 if pw.get('vehicles'):
                     vehicles = pw['vehicles']
                     if isinstance(vehicles, list):
-                        md_lines.append(f"- **Vehicles:** {len(vehicles)} vehicles")
-                        for vehicle in vehicles[:2]:  # Show first 2
+                        md_lines.append(f"- **Vehicles:**")
+                        for vehicle in vehicles:  # Show ALL vehicles with details
                             if isinstance(vehicle, dict):
-                                make = vehicle.get('make_model_estimate', vehicle.get('type', ''))
+                                # Get make/model with priority order
+                                make_model = (vehicle.get('make_model') or 
+                                            vehicle.get('make_model_estimate') or 
+                                            vehicle.get('model') or 
+                                            vehicle.get('model_guess') or 
+                                            vehicle.get('type', 'Vehicle'))
+                                
+                                # Build complete vehicle description
+                                vehicle_parts = []
                                 color = vehicle.get('color', '')
-                                if make:
-                                    md_lines.append(f"  - {color} {make}" if color else f"  - {make}")
+                                year = vehicle.get('year') or vehicle.get('generation')
+                                brand = vehicle.get('brand')
+                                
+                                # Combine brand and make_model intelligently
+                                if brand and make_model and brand.lower() not in make_model.lower():
+                                    vehicle_desc = f"{color} {brand} {make_model}" if color else f"{brand} {make_model}"
+                                elif color:
+                                    vehicle_desc = f"{color} {make_model}"
+                                else:
+                                    vehicle_desc = make_model
+                                
+                                if year:
+                                    vehicle_desc += f" ({year})"
+                                
+                                # Add position/description if available
+                                desc = vehicle.get('description')
+                                if desc and desc != 'Not visible':
+                                    vehicle_desc += f" - {desc}"
+                                
+                                md_lines.append(f"  - {vehicle_desc}")
+                            elif isinstance(vehicle, str) and vehicle != 'Not visible':
+                                md_lines.append(f"  - {vehicle}")
             
             md_lines.append("")
         
-        # Human subjects
+        # Human subjects - ENHANCED with full details
         if scene.human_subjects:
             md_lines.extend([
                 "**👥 Human Subjects:**",
                 ""
             ])
-            for subject in scene.human_subjects[:2]:  # Show first 2
+            for subject in scene.human_subjects:  # Show ALL subjects
                 if isinstance(subject, dict):
-                    demographics = subject.get('demographics', '')
-                    clothing = subject.get('clothing', '')
+                    # Demographics
+                    demographics = subject.get('demographics')
                     if demographics:
-                        md_lines.append(f"- {demographics}")
+                        if isinstance(demographics, dict):
+                            demo_parts = []
+                            if demographics.get('age_group'):
+                                demo_parts.append(demographics['age_group'])
+                            if demographics.get('gender_presentation'):
+                                demo_parts.append(demographics['gender_presentation'])
+                            if demographics.get('ethnicity'):
+                                demo_parts.append(demographics['ethnicity'])
+                            md_lines.append(f"- {', '.join(demo_parts)}")
+                        else:
+                            md_lines.append(f"- {demographics}")
+                    
+                    # Physical description
+                    physical = subject.get('physical_description')
+                    if physical and physical != 'Not visible':
+                        if isinstance(physical, dict):
+                            phys_parts = []
+                            for key in ['build', 'height', 'hair', 'skin_tone']:
+                                val = physical.get(key)
+                                if val and val != 'Not visible':
+                                    phys_parts.append(f"{key}: {val}")
+                            if phys_parts:
+                                md_lines.append(f"  - Physical: {', '.join(phys_parts)}")
+                        elif physical:
+                            md_lines.append(f"  - Physical: {physical}")
+                    
+                    # Clothing - FULL DETAILS
+                    clothing = subject.get('clothing')
                     if clothing:
-                        md_lines.append(f"  - Clothing: {clothing}")
+                        if isinstance(clothing, dict):
+                            # Filter out "Not visible" values
+                            clothing_parts = []
+                            for layer in ['upper_body', 'mid_layer', 'outer_layer', 'lower_body', 'footwear', 'accessories']:
+                                val = clothing.get(layer)
+                                if val and val != 'Not visible' and 'not visible' not in str(val).lower():
+                                    clothing_parts.append(f"{layer.replace('_', ' ').title()}: {val}")
+                            if clothing_parts:
+                                md_lines.append(f"  - Clothing: {'; '.join(clothing_parts)}")
+                        else:
+                            if str(clothing) != 'Not visible' and 'not visible' not in str(clothing).lower():
+                                md_lines.append(f"  - Clothing: {clothing}")
+                    
+                    # Action
+                    action = subject.get('action')
+                    if action and action != 'Not visible':
+                        md_lines.append(f"  - Action: {action}")
             md_lines.append("")
         
         # Shots with ultra-detailed camera positioning

@@ -407,9 +407,82 @@ For EACH scene, provide:
   - Color temperature: Warm/cool, mixed sources
   - Specific sources: "fluorescent storefronts", "tungsten street lamps", "LED signage"
 
-#### C. Physical World Inventory (CRITICAL)
-List EVERYTHING visible:
-- **Architecture**: Building types, materials (concrete, brick, wood), condition, style, era
+#### C. Physical World Inventory & Environmental Spatial Relationships (CRITICAL)
+
+**IMPORTANT: Don't just list buildings and objects - describe their EXACT POSITION relative to the subject and camera!**
+
+**BUILDINGS & ARCHITECTURE** (Complete Spatial Mapping):
+
+For EACH building visible:
+
+- **Building Identification & Aesthetics**:
+  - **Type**: Residential, commercial, mixed-use, industrial
+  - **Architectural Style**: Modern, traditional, colonial, brutalist, art deco, East Asian traditional
+  - **Era/Age**: "Appears to be 1980s construction", "Modern 2020s building", "Vintage 1950s"
+  - **Materials**: "Concrete walls with painted white finish", "Red brick facade", "Metal corrugated siding"
+  - **Color**: Exact colors of walls, trim, details
+  - **Condition**: New/pristine, maintained, aged/weathered, deteriorating, abandoned
+  - **Height**: "3-story building approximately 10 meters tall", "Single-story structure"
+  - **Unique Identifiers**:
+    - Distinctive architectural features: Balconies, awnings, curved corners, columns
+    - Signage and text on building
+    - Window patterns: "Rows of 6 windows per floor"
+    - Roofline: Flat, peaked, curved, tiled
+    - Facade details: Decorative molding, murals, texture
+
+- **BUILDING POSITION RELATIVE TO SUBJECT** (CRITICAL):
+  - **Distance from Subject**: "Building 5 meters behind subject", "Building 15 meters to subject's left"
+  - **Direction from Subject**: "Building directly behind subject", "Building to subject's right at 90°"
+  - **Position in Frame**: "Building fills left third of frame", "Building visible in background center"
+  - **Height Relative to Subject**: "Building towers 8 meters above subject's head", "Building at same level as subject"
+  - **Relationship to Subject's Path**: 
+    - "Subject walking toward building entrance"
+    - "Subject walking parallel to building, 2 meters from wall"
+    - "Subject walking away from building"
+    - "Subject passing building on right side"
+
+- **BUILDING POSITION RELATIVE TO CAMERA**:
+  - **Distance from Camera**: "Building 20 meters from camera", "Building 50+ meters in deep background"
+  - **Angle to Camera**: "Building face perpendicular to camera (straight on)", "Building at 45° angle to camera"
+  - **Which Side of Frame**: "Building occupies entire left side", "Building visible in far right background"
+
+**SPATIAL RELATIONSHIPS - SUBJECT TO ENVIRONMENT**:
+Describe how subject moves through and relates to the physical space:
+
+- **Subject's Direction Relative to Buildings**:
+  - "Subject walks toward building entrance, 3 meters from door"
+  - "Subject walks along building facade, maintaining 1.5m distance from wall"
+  - "Subject exits from between two buildings"
+  - "Subject walks away from building, moving toward camera"
+
+- **Subject's Position Between Objects**:
+  - "Subject walks through alley between building (left) and parked van (right), 1.5m-wide passage"
+  - "Subject positioned between foreground van (2m away) and background building (10m away)"
+  - "Subject emerges from behind van, building visible 8m behind"
+
+- **Complete Depth Mapping** (Foreground to Background):
+  - **Foreground (0-3m)**: "Van occupies left foreground at 1-2m from camera"
+  - **Midground (3-10m)**: "Subject walks at 5m from camera in center frame, scooters parked at 4m on right"
+  - **Background (10-30m)**: "Buildings line background 15-25m from camera, storefronts visible at 12m"
+  - **Deep Background (30m+)**: "City skyline visible 100m+ in distance, hazy atmospheric perspective"
+
+**ENVIRONMENTAL PHYSICS & WORLD VIEW**:
+
+- **Scale & Proportions**:
+  - "Building is 3x taller than subject"
+  - "Van width is approximately 2m, subject 0.5m wide, creates size reference"
+  - "Alley is 3 meters wide (approximately 1.5 van widths)"
+
+- **Spatial Layout of Scene**:
+  - "Narrow alley runs left-to-right across frame, 3m wide, 30m long visible"
+  - "Open street with subject in center, buildings line both sides 10m apart"
+  - "Enclosed space with walls on three sides, open to camera"
+
+- **Movement Trajectories**:
+  - "Subject moves left-to-right across frame, parallel to building facade"
+  - "Subject approaches camera diagonally from background right to foreground center"
+  - "Subject moves perpendicular to camera line, crossing frame"
+
 - **Signs & Text**: 
   - All visible text (even if partially visible)
   - Languages present
@@ -475,10 +548,61 @@ For EACH person (use the ultra-detailed format from section 3):
   - **Hair movement**: Direction, speed, how it responds to motion/wind
   - **Clothing movement**: How garments flow, billow, or move with their motion
   - **Shadow**: Where their shadow falls, length, direction
-- **Interactions**: 
-  - With other people: "Talking to Person 2", "Walking alongside Person 3"
-  - With objects: "Carrying bag", "Touching wall", "Holding phone"
-  - With environment: "Looking at storefront", "Avoiding obstacle"
+- **BODY POSITIONING & PHYSICAL INTERACTIONS WITH OTHER SUBJECTS** (CRITICAL):
+  **When 2+ people are together, describe their EXACT physical relationship:**
+  
+  - **On Motorcycle/Vehicle (2 people)**:
+    - "Male driver sits upright, female passenger sits behind, arms wrapped around driver's waist"
+    - "Driver leans forward ~15 degrees, passenger also leans forward matching driver's angle, maintaining grip"
+    - "Passenger's chest touching driver's back, bodies pressed together due to lean"
+    - "Passenger's hands clasped at driver's stomach level"
+    - "Both heads turned slightly to left as bike turns"
+  
+  - **Walking Together**:
+    - "Walking side-by-side, Person A on left, Person B on right, 0.5 meters apart"
+    - "Person A's right shoulder slightly ahead of Person B's left shoulder by 0.3m"
+    - "Arms linked at elbows", "Holding hands", "Arms around each other's shoulders"
+    - "Walking in sync - same foot forward", "Slightly out of sync in gait"
+  
+  - **Standing Together**:
+    - "Person A stands 0.3m in front and to left of Person B"
+    - "Person A's left shoulder touches Person B's right shoulder"
+    - "Person A leaning against Person B, head on shoulder"
+    - "Both facing same direction", "Facing each other at 180°"
+    - "Person A turned 45° toward Person B, Person B facing camera"
+  
+  - **Sitting Together**:
+    - "Sitting side-by-side on scooter, 0.2m gap between them"
+    - "Person A slouched, Person B sitting upright"
+    - "Legs positioned: Person A's right leg touching Person B's left leg"
+  
+  - **Physical Contact Points**:
+    - "Hand on shoulder", "Arm around waist", "Holding hands"
+    - "Back-to-back contact", "Side-by-side touching"
+    - "One person's head resting on other's shoulder"
+    - Weight distribution: "Person A leaning weight onto Person B"
+  
+  - **Coordinated Movement**:
+    - "Both leaning left as motorcycle turns"
+    - "Walking in unison, synchronized steps"
+    - "Both turning heads to look at same object"
+    - "One person leading, other following 1 meter behind"
+  
+  - **Relative Body Angles**:
+    - "Person A facing 0° (toward camera), Person B facing 270° (left profile)"
+    - "Both bodies angled 15° to the right of camera"
+    - "Person A upright (90° to ground), Person B leaning 75° (15° lean)"
+
+- **Interactions with Objects**: 
+  - "Carrying bag", "Touching wall", "Holding phone"
+  - "Gripping motorcycle handlebars", "Feet on footpegs"
+  - "Hand on door handle", "Leaning against wall"
+
+- **Interactions with Environment**: 
+  - "Looking at storefront", "Avoiding obstacle"
+  - "Walking toward building entrance", "Moving away from parked van"
+  - "Turning corner at end of alley"
+
 - **Visibility**: "Fully visible", "Partially obscured by van", "Only upper body visible", "Visible in background but out of focus"
 
 #### E. Cinematographic Technical Details
@@ -652,6 +776,7 @@ Provide your analysis in a structured JSON format that matches this schema:
    - Exact position in frame (horizontal and vertical placement)
    - Exact position in meters from camera
    - What surface they're on (sidewalk, road, grass, etc.)
+   - **When 2+ people together**: Describe exact physical relationship and body positioning (see detailed examples in section 3)
 
 4. **PHYSICS OF MOVEMENT IS CRITICAL**:
    - **Hair**: How does hair move with motion? Direction, speed, wind effects
@@ -660,11 +785,21 @@ Provide your analysis in a structured JSON format that matches this schema:
    - **Reflections**: Any reflections visible?
    - Motion speeds in m/s or km/h
 
-5. **BUILDINGS & OBJECTS POSITIONING**: For EVERY building and object visible:
-   - Exact position relative to camera and subject
-   - Position in frame (left side, right background, center, etc.)
-   - Distance from camera in meters
-   - Relationship to subjects ("Building 10 meters behind subject on left")
+5. **BUILDINGS & ENVIRONMENTAL SPATIAL RELATIONSHIPS** (CRITICAL):
+   For EVERY building and object, describe:
+   - **Building aesthetics**: Style, era, materials, colors, height, unique identifiers
+   - **Position relative to SUBJECT**: Distance, direction, which side
+     - "Building 5 meters behind subject", "Building to subject's right"
+   - **Position relative to CAMERA**: Distance, angle, frame placement
+     - "Building 20m from camera, fills left side of frame"
+   - **Subject's movement relative to building**:
+     - "Subject walking toward building entrance"
+     - "Subject walking parallel to building facade, 2m from wall"
+     - "Subject passing building on right side"
+   - **Complete spatial mapping**: Foreground, midground, background depth layers with distances
+   - **Environmental physics**: Scale, proportions, spatial layout
+     - "Building is 3x taller than subject"
+     - "Alley is 3 meters wide"
 
 6. **READ ALL TEXT**: Attempt to read EVERY visible sign, even partial/blurry text. Even if you can only see "...chen N..." - document it! This is critical for recreation.
 
@@ -694,7 +829,15 @@ Provide your analysis in a structured JSON format that matches this schema:
    - "Sitting on motorcycle seat"
    - "On gravel path"
 
-9. **DOCUMENT EVERYTHING VISIBLE**: The AI needs EVERY detail:
+9. **BODY POSITIONING & PHYSICAL INTERACTIONS** (CRITICAL for 2+ people):
+   When multiple people are together, describe EXACT physical relationship:
+   - How they're positioned relative to each other (side-by-side, front-back, distance apart)
+   - Physical contact points: "Arms wrapped around waist", "Holding hands", "Shoulder touching"
+   - Coordinated movement: "Both leaning forward together on motorcycle"
+   - Body angles relative to each other: "Person A faces 0°, Person B faces 270°"
+   - Use detailed examples from section 3 (motorcycle riders, walking together, etc.)
+
+10. **DOCUMENT EVERYTHING VISIBLE**: The AI needs EVERY detail:
    - Every person (including background, partial, out-of-focus)
    - Every object (foreground and background)
    - Every building and architectural element
@@ -702,33 +845,38 @@ Provide your analysis in a structured JSON format that matches this schema:
    - Every vehicle with make/model identification
    - All brands, logos, and product identifications
    - All shadows, reflections, lighting effects
+   - All spatial RELATIONSHIPS (subject to building, subject to objects, subjects to each other)
    - Do NOT summarize or skip elements - be exhaustive
 
-10. **USE PROFESSIONAL TERMINOLOGY**: Use correct cinematography, lighting, and color science terms from the standards provided.
+11. **USE PROFESSIONAL TERMINOLOGY**: Use correct cinematography, lighting, and color science terms from the standards provided.
 
-11. **MEASUREMENTS OVER DESCRIPTIONS**: 
+12. **MEASUREMENTS OVER DESCRIPTIONS**: 
     - "3 meters from camera" NOT "close to camera"
     - "30-degree downward angle" NOT "high angle shot"
     - "Subject in right third of frame, lower third vertically" NOT "subject on right"
     - "1.5 m/s walking speed" NOT "slow walk"
     - "Honda CBR600RR" NOT "motorcycle"
     - "White Toyota HiAce H100 van, 1990s generation" NOT "white van"
+    - "Building 5 meters behind subject" NOT "building in background"
+    - "Driver leans forward 15°, passenger matches angle" NOT "both leaning"
 
-12. **CONSISTENCY**: Maintain exact names and descriptions for recurring elements across all scenes.
+13. **CONSISTENCY**: Maintain exact names and descriptions for recurring elements across all scenes.
 
-13. **EDUCATED GUESSES ARE ENCOURAGED**: If you can see partial information:
+14. **EDUCATED GUESSES ARE ENCOURAGED**: If you can see partial information:
     - "Appears to be Honda CB series based on visible tank shape and exhaust"
     - "Likely 7-Eleven based on green and orange color scheme"
     - "Appears to be iPhone based on camera layout, possibly 12 or 13 generation"
     - Use context clues, design language, and partial features to make informed identifications
 
-14. **NO ASSUMPTIONS ON UNCERTAIN DETAILS**: If you truly can't determine something after attempting identification, state "not visible" or "indeterminable" rather than making random guesses.
+15. **NO ASSUMPTIONS ON UNCERTAIN DETAILS**: If you truly can't determine something after attempting identification, state "not visible" or "indeterminable" rather than making random guesses.
 
 ---
 
 ## REMEMBER: THE GOAL IS 99% RECREATION ACCURACY
 
 An AI reading your analysis should be able to recreate the video almost perfectly by understanding:
+
+**SPATIAL POSITIONING & RELATIONSHIPS:**
 - **WHERE**: Exact camera position, angle, distance
 - **WHO**: Every person with complete appearance details (clothing, demographics, positioning)
 - **WHAT**: Every object, building, sign, vehicle visible
@@ -737,7 +885,28 @@ An AI reading your analysis should be able to recreate the video almost perfectl
 - **WHERE IN FRAME**: Exact positioning (left/right, top/bottom, foreground/background)
 - **ON WHAT**: What surface are subjects on (sidewalk, road, etc.)
 
+**PHYSICAL RELATIONSHIPS (CRITICAL):**
+- **Subject to Subject**: When 2+ people together, describe exact physical relationship
+  - "Female passenger on motorcycle, arms wrapped around driver's waist, both leaning forward 15°"
+  - "Walking side-by-side, 0.5m apart, Person A's shoulder ahead by 0.3m"
+- **Subject to Building**: Position and movement relative to buildings
+  - "Subject walks toward building entrance, 3 meters from door"
+  - "Building 5 meters behind subject, fills left third of frame"
+  - "Subject walking parallel to building facade, 2m from wall"
+- **Subject to Objects**: How subject relates to vehicles, objects in space
+  - "Subject passes between foreground van (2m away) and background building (10m away)"
+- **Complete World Physics**: Scale, proportions, spatial layout
+  - "Building is 3x taller than subject"
+  - "Alley is 3 meters wide (1.5 van widths)"
+
+**BUILDING AESTHETICS & ENVIRONMENT:**
+- Building style, era, materials, colors, height
+- Unique identifiers: balconies, signage, window patterns, facade details
+- Environmental physics: How everything relates spatially in the 3D world
+
 **BRAND IDENTIFICATION IS CRITICAL**: Don't just say "motorcycle" - identify it as "Honda CBR600RR" or "Appears to be Honda CB series based on tank shape". Don't say "van" - identify it as "White Toyota HiAce H100, 1990s generation". Use logos, badges, design characteristics, and context clues to identify specific makes and models.
+
+**IT'S ALL ABOUT RELATIONSHIPS**: Don't just list elements - describe how they RELATE to each other in 3D space. How subjects interact with each other, how they move through the environment, how buildings and objects position relative to subjects and camera. This creates the complete world view needed for perfect recreation.
 
 MORE DETAIL = BETTER RECREATION. Be exhaustive, not summary.
 

@@ -209,10 +209,16 @@ def run_all(
 def reimagine(
     input: str = typer.Option(..., "--input", "-i", help="Path to prompts_detailed.md"),
     style: Optional[str] = typer.Option(None, "--style", "-s", help="Global style directive"),
-    num_variants: int = typer.Option(3, "--num-variants", "-n", help="Variants per scene (3-5)"),
+    num_variants: int = typer.Option(3, "--num-variants", "-n", help="Variants per scene (1-5)"),
     output: Optional[str] = typer.Option(None, "--output", "-o", help="Directory for outputs"),
     model: Optional[str] = typer.Option(None, "--model", help="Override Gemini model"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
+    user_prompt: Optional[str] = typer.Option(
+        None,
+        "--user-prompt",
+        "-u",
+        help="Additional free-form instructions applied to every variant",
+    ),
 ) -> None:
     """Generate creative prompt variants for an existing prompt pack."""
     logger = setup_logger("ai_video.cli", level="DEBUG" if verbose else "INFO")
@@ -225,6 +231,7 @@ def reimagine(
             style=style,
             num_variants=num_variants,
             output_dir=output,
+            user_prompt=user_prompt,
         )
 
         artifacts = result.get("artifacts", {})
@@ -234,6 +241,8 @@ def reimagine(
         console.print(f"[cyan]Variants per scene:[/cyan] {result['num_variants_per_scene']}")
         console.print(f"[cyan]Total variants:[/cyan] {result['total_variants']}")
         console.print(f"[cyan]Global style:[/cyan] {result['global_style']['name']}")
+        if result.get('user_prompt'):
+            console.print(f"[cyan]User prompt:[/cyan] {result['user_prompt']}")
 
         if artifacts:
             console.print("\n[bold]Artifacts:[/bold]")

@@ -160,6 +160,11 @@ ai-video reimagine \
   --style "anime cyberpunk tokyo" \
   --num-variants 4
 
+# Layer additional free-form instructions across all variants
+ai-video reimagine \
+  --input assets/prompts/VIDEO_ID/prompts_detailed.md \
+  --user-prompt "Highlight the humid summer night air and the couple's unspoken tension"
+
 # Run the standalone agent module directly
 python -m ai_video.agents.reimagination_agent \
   --input assets/prompts/VIDEO_ID/prompts_detailed.md \
@@ -167,9 +172,9 @@ python -m ai_video.agents.reimagination_agent \
 ```
 
 Output:
-- `variant_prompts.json` – Structured `ReimaginationResult` with per-scene variants
-- `variant_report.md` – Concise operator summary grouped by scene
-- User-supplied directives are respected across every scene; omit `--style` to let the agent choose a cohesive look and document it in the global style profile.
+- `variant_prompts.json` – Structured `ReimaginationResult` with per-scene image + video variants
+- `variant_report.md` – Concise operator summary grouped by scene (shows both prompt types and metadata)
+- User-supplied directives are respected across every scene; omit `--style` to let the agent choose a cohesive look and document it in the global style profile. Add `--user-prompt` for extra narrative or stylistic cues that should apply to all variants.
 
 ### Analyze YouTube Video Clip
 

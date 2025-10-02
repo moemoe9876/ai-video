@@ -29,6 +29,54 @@ logger = get_logger(__name__)
 
 SYSTEM_PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "reimagination_agent_system_prompt.md"
 
+PROMPT_STRUCTURE = "Subject + Action + Scene + Camera + Lighting + Style"
+
+LIGHT_CONDITIONS = [
+    "golden hour",
+    "blue hour",
+    "overcast light",
+    "diffused light",
+    "backlighting",
+    "soft ambient light",
+    "low-key lighting",
+    "high-key lighting",
+    "window light",
+    "dappled light",
+    "spotlight",
+    "twilight light",
+    "candlelight",
+    "neon light",
+    "moonlight",
+    "street light",
+    "bounced light",
+    "lens flare",
+    "studio light",
+    "pattern light",
+]
+
+FILM_STOCK_CHOICES = [
+    "Cinestill 800T",
+    "Kodak Portra 800",
+    "Lomography X-Pro 200",
+    "Kodak Ektachrome",
+    "Fujifilm Pro 400H",
+    "Lomography Color Negative 800",
+    "Kodak Ektar 100",
+    "Revolog Kolor",
+    "Agfa Vista Plus 200",
+    "Fujifilm Velvia 50",
+    "Fujifilm Superia X-Tra",
+    "Kodak Gold 200",
+    "Fujifilm Provia 100F",
+    "Adox Color Implosion",
+    "Agfa Vista 400",
+    "Lomography Redscale",
+    "Kodak Vision3 500T",
+    "Lomography Diana F+",
+    "Polaroid Originals",
+    "Fujifilm Instax Mini",
+]
+
 @dataclass
 class ParsedScene:
     """Intermediate representation of a scene extracted from markdown."""
@@ -51,6 +99,11 @@ class ParsedDocument:
 
     video_id: str
     title: Optional[str]
+    film_stock: Optional[str]
+    lens: Optional[str]
+    base_style: Optional[str]
+    base_mood: Optional[str]
+    cultural_context: Optional[str]
     scenes: List[ParsedScene]
 
 
@@ -64,6 +117,11 @@ def parse_detailed_markdown(input_path: Path) -> ParsedDocument:
 
     document_title: Optional[str] = None
     video_id: Optional[str] = None
+    film_stock: Optional[str] = None
+    lens: Optional[str] = None
+    base_style: Optional[str] = None
+    base_mood: Optional[str] = None
+    cultural_context: Optional[str] = None
     scenes: List[ParsedScene] = []
     current: Optional[ParsedScene] = None
 
@@ -78,6 +136,63 @@ def parse_detailed_markdown(input_path: Path) -> ParsedDocument:
             document_title = line.lstrip("# ").strip()
         elif not video_id and line.startswith("**Video ID:**"):
             video_id = line.split("**Video ID:**", 1)[1].strip()
+
+        lower_line = line.lower()
+        if lower_line.startswith("### film stock"):
+            i += 1
+            section_lines: List[str] = []
+            while i < len(lines):
+                section_line = lines[i].strip()
+                if not section_line or section_line.startswith("###") or section_line.startswith("## "):
+                    break
+                section_lines.append(section_line)
+                i += 1
+            film_stock = " ".join(section_lines).strip() or film_stock
+            continue
+        if lower_line.startswith("### lens"):
+            i += 1
+            section_lines = []
+            while i < len(lines):
+                section_line = lines[i].strip()
+                if not section_line or section_line.startswith("###") or section_line.startswith("## "):
+                    break
+                section_lines.append(section_line)
+                i += 1
+            lens = " ".join(section_lines).strip() or lens
+            continue
+        if lower_line.startswith("### style"):
+            i += 1
+            section_lines = []
+            while i < len(lines):
+                section_line = lines[i].strip()
+                if not section_line or section_line.startswith("###") or section_line.startswith("## "):
+                    break
+                section_lines.append(section_line)
+                i += 1
+            base_style = " ".join(section_lines).strip() or base_style
+            continue
+        if lower_line.startswith("### mood"):
+            i += 1
+            section_lines = []
+            while i < len(lines):
+                section_line = lines[i].strip()
+                if not section_line or section_line.startswith("###") or section_line.startswith("## "):
+                    break
+                section_lines.append(section_line)
+                i += 1
+            base_mood = " ".join(section_lines).strip() or base_mood
+            continue
+        if lower_line.startswith("### cultural context"):
+            i += 1
+            section_lines = []
+            while i < len(lines):
+                section_line = lines[i].strip()
+                if not section_line or section_line.startswith("###") or section_line.startswith("## "):
+                    break
+                section_lines.append(section_line)
+                i += 1
+            cultural_context = " ".join(section_lines).strip() or cultural_context
+            continue
 
         header_match = scene_header.match(line)
         if header_match:
@@ -149,7 +264,16 @@ def parse_detailed_markdown(input_path: Path) -> ParsedDocument:
 
     resolved_video_id = video_id or input_path.parent.name
 
-    return ParsedDocument(video_id=resolved_video_id, title=document_title, scenes=scenes)
+    return ParsedDocument(
+        video_id=resolved_video_id,
+        title=document_title,
+        film_stock=film_stock,
+        lens=lens,
+        base_style=base_style,
+        base_mood=base_mood,
+        cultural_context=cultural_context,
+        scenes=scenes,
+    )
 
 
 def _load_prompt_map(parent_dir: Path) -> Dict[int, str]:
@@ -212,13 +336,14 @@ class ReimaginationAgent:
         style: Optional[str] = None,
         num_variants: int = 3,
         output_dir: Optional[str] = None,
+        user_prompt: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Generate reimagined prompt variants for each scene in the markdown file."""
         input_path = Path(input_file)
         if not input_path.exists():
             raise ValidationError(f"Input file not found: {input_path}")
-        if num_variants < 3 or num_variants > 5:
-            raise ValidationError("num_variants must be between 3 and 5 inclusive")
+        if num_variants < 1 or num_variants > 5:
+            raise ValidationError("num_variants must be between 1 and 5 inclusive")
 
         with LogContext(logger, f"Reimagining prompts from {input_path}"):
             parsed = parse_detailed_markdown(input_path)
@@ -233,6 +358,8 @@ class ReimaginationAgent:
                     scene=scene,
                     global_style=global_style,
                     num_variants=num_variants,
+                    document=parsed,
+                    user_prompt=user_prompt,
                 )
                 reimagined_scenes.append(reimagined_scene)
 
@@ -241,6 +368,7 @@ class ReimaginationAgent:
                 source_file=str(input_path),
                 generated_at=datetime.utcnow(),
                 requested_style=style,
+                user_prompt=user_prompt,
                 global_style=global_style,
                 num_variants_per_scene=num_variants,
                 total_scenes=len(reimagined_scenes),
@@ -260,6 +388,8 @@ class ReimaginationAgent:
         scene: ParsedScene,
         global_style: GlobalStyleProfile,
         num_variants: int,
+        document: ParsedDocument,
+        user_prompt: Optional[str],
     ) -> ReimaginedScene:
         """Generate reimagined variants for a single scene."""
         payload = {
@@ -275,19 +405,49 @@ class ReimaginationAgent:
                 "base_prompt": scene.base_prompt,
                 "time_range": scene.time_range,
             },
+            "global_context": {
+                "film_stock": document.film_stock,
+                "lens": document.lens,
+                "style": document.base_style,
+                "mood": document.base_mood,
+                "cultural_context": document.cultural_context,
+            },
+            "reference_guides": {
+                "prompt_structure": PROMPT_STRUCTURE,
+                "lighting_options": LIGHT_CONDITIONS,
+                "film_stock_options": FILM_STOCK_CHOICES,
+                "language_style": "Use clear, conversational sentences while keeping technical camera and lighting terms precise.",
+            },
             "requirements": {
                 "num_variants": num_variants,
                 "preserve_subject_action": True,
+                "prompt_guidelines": {
+                    "min_word_count": 80,
+                    "max_word_count": 130,
+                    "include_film_stock": True,
+                    "include_lens": True,
+                    "include_mood": True,
+                    "include_cultural_context": True,
+                },
                 "max_prompt_length": 350,
             },
         }
+        if user_prompt:
+            payload["requirements"]["user_prompt"] = user_prompt
         instructions = (
-            "Create short, production-ready generation prompts that honor the subject and action "
-            "from the base scene but shift mood, setting, or aesthetic according to the global "
-            "style profile. Ensure each variant is distinct yet cohesive. Return JSON with the "
-            "structure: {scene_index, scene_title, notes?, reimagined_variants: [" \
-            "{variant_id, title, prompt, style_notes?, camera_focus?, lighting_focus?, tags[]}]}"
+            "Create clear, production-ready generation prompts that keep the original subject and action "
+            "but explore new moods, palettes, and settings aligned with the global style. Use approachable "
+            "language while weaving in precise camera and film terminology (shot type, lens, movement, lighting). "
+            "Each variant must name-drop at least one relevant filmmaker, photographer, or designer whose work matches the mood. "
+            "Draw lighting terms from the provided light-condition list and film stocks from the color film roster. "
+            "Always reference the cultural context when appropriate. Stay within 80-130 words per prompt using short, readable sentences. "
+            "For every variant return BOTH an `image_prompt` and a `video_prompt`: structure them using the formula "
+            "Subject + Action + Scene + Camera + Lighting + Style, inspired by the how-to-prompt guide. Describe the video prompt with explicit movement cues and pacing. "
+            "The JSON structure MUST be: {scene_index, scene_title, notes?, reimagined_variants: ["
+            "{variant_id, title, image_prompt, video_prompt, film_stock, lens, mood, cultural_context, style_notes?, camera_focus?, lighting_focus?, tags[]}]}"
         )
+        if user_prompt:
+            instructions += " Prioritize the following user guidance verbatim: " + user_prompt.strip()
 
         response = self._invoke_model(instructions, payload)
 
@@ -307,13 +467,45 @@ class ReimaginationAgent:
                 "mood": reimagined_scene.mood or scene.mood,
             }
         )
-        return merged_scene
+
+        updated_variants: List[ReimaginedVariant] = []
+        for idx, variant in enumerate(merged_scene.reimagined_variants, start=1):
+            update_data: Dict[str, Any] = {}
+            if not variant.variant_id:
+                update_data["variant_id"] = f"{scene.scene_index}-{idx:02d}"
+            if not variant.image_prompt and variant.prompt:
+                update_data["image_prompt"] = variant.prompt
+            if not variant.video_prompt and variant.prompt:
+                update_data["video_prompt"] = variant.prompt
+            if not variant.film_stock and document.film_stock:
+                update_data["film_stock"] = document.film_stock
+            if not variant.lens and document.lens:
+                update_data["lens"] = document.lens
+            if not variant.mood and (scene.mood or document.base_mood):
+                update_data["mood"] = scene.mood or document.base_mood
+            if not variant.cultural_context and document.cultural_context:
+                update_data["cultural_context"] = document.cultural_context
+            updated_variants.append(variant.model_copy(update=update_data))
+
+        return merged_scene.model_copy(update={"reimagined_variants": updated_variants})
 
     def choose_self_directed_style(self, parsed: ParsedDocument) -> GlobalStyleProfile:
         """Select a global creative direction when none is provided."""
         payload = {
             "video_id": parsed.video_id,
             "title": parsed.title,
+            "global_context": {
+                "film_stock": parsed.film_stock,
+                "lens": parsed.lens,
+                "style": parsed.base_style,
+                "mood": parsed.base_mood,
+                "cultural_context": parsed.cultural_context,
+            },
+            "reference_guides": {
+                "prompt_structure": PROMPT_STRUCTURE,
+                "lighting_options": LIGHT_CONDITIONS,
+                "film_stock_options": FILM_STOCK_CHOICES,
+            },
             "scenes": [
                 {
                     "scene_index": scene.scene_index,
@@ -328,8 +520,9 @@ class ReimaginationAgent:
         }
         instructions = (
             "Analyze the provided scenes and propose a single cohesive creative direction that "
-            "could be applied across all scenes. Return JSON with fields: name, description, "
-            "keywords (array of 3-6 tokens), palette, lighting, camera_direction."
+            "could be applied across all scenes. Respect the supplied film stock, lens, and "
+            "cultural context when crafting the direction. Return JSON with fields: name, "
+            "description, keywords (array of 3-6 tokens), palette, lighting, camera_direction."
         )
         response = self._invoke_model(instructions, payload)
 
@@ -346,9 +539,16 @@ class ReimaginationAgent:
     ) -> GlobalStyleProfile:
         if style_directive:
             keywords = [token.strip() for token in re.split(r"[,:/]", style_directive) if token.strip()]
+            description_parts = [f"User-provided directive emphasizing {style_directive.strip()}"]
+            if parsed.film_stock:
+                description_parts.append(f"Maintain film stock character: {parsed.film_stock}")
+            if parsed.lens:
+                description_parts.append(f"Lens reference: {parsed.lens}")
+            if parsed.cultural_context:
+                description_parts.append(f"Cultural context: {parsed.cultural_context}")
             return GlobalStyleProfile(
                 name=style_directive.strip(),
-                description=f"User-provided directive emphasizing {style_directive.strip()}",
+                description=" | ".join(description_parts),
                 keywords=keywords[:6],
                 palette=None,
                 lighting=None,
@@ -445,6 +645,8 @@ def render_markdown_report(result: ReimaginationResult) -> str:
         "## Global Style",
         f"**Name:** {header_title}",
     ]
+    if result.user_prompt:
+        lines.insert(6, f"**User Prompt:** {result.user_prompt}")
 
     if result.global_style.description:
         lines.append(f"**Description:** {result.global_style.description}")
@@ -475,9 +677,22 @@ def render_markdown_report(result: ReimaginationResult) -> str:
         for variant in scene.reimagined_variants:
             tag_str = f" (tags: {', '.join(variant.tags)})" if variant.tags else ""
             lines.append(f"  - **{variant.title}**{tag_str}")
-            lines.append("    ```")
-            lines.append(f"    {variant.prompt}")
-            lines.append("    ```")
+            if variant.image_prompt:
+                lines.append("    ```")
+                lines.append(f"    Image prompt: {variant.image_prompt}")
+                lines.append("    ```")
+            if variant.video_prompt:
+                lines.append("    ```")
+                lines.append(f"    Video prompt: {variant.video_prompt}")
+                lines.append("    ```")
+            if variant.film_stock:
+                lines.append(f"    *Film stock:* {variant.film_stock}")
+            if variant.lens:
+                lines.append(f"    *Lens:* {variant.lens}")
+            if variant.mood:
+                lines.append(f"    *Mood:* {variant.mood}")
+            if variant.cultural_context:
+                lines.append(f"    *Cultural context:* {variant.cultural_context}")
             if variant.style_notes:
                 lines.append(f"    *Style notes:* {variant.style_notes}")
             if variant.camera_focus:
@@ -494,9 +709,15 @@ app = typer.Typer(add_completion=False, help="Standalone CLI for the Reimaginati
 def main(
     input: str = typer.Option(..., "--input", "-i", help="Path to prompts_detailed.md"),
     style: Optional[str] = typer.Option(None, "--style", "-s", help="Global style directive"),
-    num_variants: int = typer.Option(3, "--num-variants", "-n", help="Number of variants per scene (3-5)"),
+    num_variants: int = typer.Option(3, "--num-variants", "-n", help="Number of variants per scene (1-5)"),
     output: Optional[str] = typer.Option(None, "--output", "-o", help="Override output directory"),
     model: Optional[str] = typer.Option(None, "--model", help="Override Gemini model"),
+    user_prompt: Optional[str] = typer.Option(
+        None,
+        "--user-prompt",
+        "-u",
+        help="Additional free-form instructions applied to every variant",
+    ),
 ) -> None:
     """Generate reimagined prompts directly from the CLI."""
     try:
@@ -506,6 +727,7 @@ def main(
             style=style,
             num_variants=num_variants,
             output_dir=output,
+            user_prompt=user_prompt,
         )
         artifacts = result.get("artifacts", {})
         typer.echo(

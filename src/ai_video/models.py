@@ -3,7 +3,7 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 class CameraMovement(str, Enum):
     """Camera movement types."""
@@ -273,7 +273,13 @@ class ReimaginedVariant(BaseModel):
 
     variant_id: str = Field(description="Variant identifier within the scene")
     title: str = Field(description="Short handle for the variant")
-    prompt: str = Field(description="Generation-ready prompt text")
+    image_prompt: Optional[str] = Field(default=None, description="Text-to-image prompt")
+    video_prompt: Optional[str] = Field(default=None, description="Text-to-video (or image-to-video) prompt")
+    prompt: Optional[str] = Field(default=None, description="Legacy prompt field retained for backward compatibility")
+    film_stock: Optional[str] = Field(default=None, description="Specific film stock treatment to emphasize")
+    lens: Optional[str] = Field(default=None, description="Lens choice or optical treatment")
+    mood: Optional[str] = Field(default=None, description="Emotional tone for this variant")
+    cultural_context: Optional[str] = Field(default=None, description="Relevant cultural grounding cues")
     style_notes: Optional[str] = Field(default=None, description="Supplemental notes on style or mood")
     camera_focus: Optional[str] = Field(default=None, description="Camera direction or movement emphasis")
     lighting_focus: Optional[str] = Field(default=None, description="Lighting tone guidance")
@@ -284,13 +290,46 @@ class ReimaginedVariant(BaseModel):
             "example": {
                 "variant_id": "1",
                 "title": "Midnight rain neon ride",
-                "prompt": "Young couple racing through rain-soaked Shibuya on a vintage motorcycle, drenched neon signage, reflections shimmering on pavement, cinematic motion blur, 35mm anamorphic frame",
+                "image_prompt": "Young couple racing through rain-soaked Shibuya on a vintage motorcycle, drenched neon signage, reflections shimmering on pavement, cinematic motion blur, 35mm anamorphic frame",
+                "video_prompt": "Tracking shot swoops with the couple through Shibuya at night, neon halation reflecting off slick asphalt, handheld dolly push that eases into a slow orbit as rain streaks catch the sodium glow.",
+                "film_stock": "Kodak Vision3 500T pushed for heavy grain and teal-magenta highlights",
+                "lens": "50mm vintage prime with wide-open aperture and gentle vignette",
+                "mood": "Electric, rain-soaked adrenaline",
+                "cultural_context": "Late-90s Tokyo youth culture, Shibuya nightlife",
                 "style_notes": "Blend Blade Runner color palette with Tokyo street photography grit",
                 "camera_focus": "Low-slung tracking cam gliding inches above the asphalt",
                 "lighting_focus": "Sodium vapor base with magenta neon spill",
                 "tags": ["neon-noir", "rain", "tokyo", "anamorphic"]
             }
         }
+
+    @field_validator("variant_id", mode="before")
+    @classmethod
+    def _coerce_variant_id(cls, value):
+        if value is None:
+            return value
+        if isinstance(value, (int, float)):
+            # Preserve zero-padding expectations by formatting as integer string
+            return str(int(value))
+        return str(value)
+
+    @field_validator("image_prompt", "video_prompt", mode="after")
+    @classmethod
+    def _ensure_prompt_str(cls, value, info):
+        if value is None:
+            return value
+        if isinstance(value, (int, float)):
+            return str(value)
+        return value
+
+    @model_validator(mode="after")
+    def _backfill_prompts(self) -> "ReimaginedVariant":
+        # Maintain backward compatibility with legacy responses that only provided `prompt`
+        if self.image_prompt is None and self.prompt is not None:
+            self.image_prompt = self.prompt
+        if self.video_prompt is None and self.prompt is not None:
+            self.video_prompt = self.prompt
+        return self
 
 
 class ReimaginedScene(BaseModel):
@@ -326,6 +365,7 @@ class ReimaginationResult(BaseModel):
     source_file: str = Field(description="Path to the source markdown file")
     generated_at: datetime = Field(description="UTC timestamp when variants were generated")
     requested_style: Optional[str] = Field(default=None, description="User-provided style directive if any")
+    user_prompt: Optional[str] = Field(default=None, description="Additional free-form user instructions")
     global_style: GlobalStyleProfile
     num_variants_per_scene: int = Field(description="Requested number of variants per scene")
     total_scenes: int = Field(description="Number of scenes processed")
@@ -340,6 +380,7 @@ class ReimaginationResult(BaseModel):
                 "source_file": "assets/prompts/east_asian_90s_urban_romance_montage/prompts_detailed.md",
                 "generated_at": "2024-10-02T06:30:00Z",
                 "requested_style": "anime cyberpunk Tokyo",
+                "user_prompt": "Emphasize VHS artifacting and dreamy slow-motion transitions",
                 "global_style": {
                     "name": "Anime cyberpunk Tokyo",
                     "description": "Electric night city awash in holographic signage and rainy reflections",

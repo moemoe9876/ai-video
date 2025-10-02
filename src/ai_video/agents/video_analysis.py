@@ -99,6 +99,9 @@ class VideoAnalysisAgent:
         main_entities = []
         for entity_data in analysis_data.get("main_entities", []):
             if isinstance(entity_data, dict):
+                # Handle entity_id vs name inconsistency
+                if "entity_id" in entity_data and "name" not in entity_data:
+                    entity_data["name"] = entity_data.pop("entity_id")
                 entity = Entity(**entity_data)
                 main_entities.append(entity)
             elif isinstance(entity_data, str):
@@ -120,6 +123,9 @@ class VideoAnalysisAgent:
         entities = []
         for entity_data in scene_data.get("key_entities", []):
             if isinstance(entity_data, dict):
+                # Handle entity_id vs name inconsistency
+                if "entity_id" in entity_data and "name" not in entity_data:
+                    entity_data["name"] = entity_data.pop("entity_id")
                 entity = Entity(**entity_data)
                 entities.append(entity)
             elif isinstance(entity_data, str):
@@ -174,11 +180,20 @@ class VideoAnalysisAgent:
         entities = []
         for entity_data in shot_data.get("entities", []):
             if isinstance(entity_data, dict):
+                # Handle entity_id vs name inconsistency
+                if "entity_id" in entity_data and "name" not in entity_data:
+                    entity_data["name"] = entity_data.pop("entity_id")
                 entity = Entity(**entity_data)
                 entities.append(entity)
             elif isinstance(entity_data, str):
                 entity = Entity(name=entity_data, type="unknown")
                 entities.append(entity)
+        
+        # Helper to convert dict to string
+        def dict_to_str(data):
+            if isinstance(data, dict):
+                return ". ".join(f"{v}" for k, v in data.items() if v)
+            return data
         
         shot_dict = {
             "shot_index": shot_data.get("shot_index", 0),
@@ -190,16 +205,16 @@ class VideoAnalysisAgent:
             "shot_type": shot_data.get("shot_type"),
             "camera_movement": shot_data.get("camera_movement"),
             "camera_description": shot_data.get("camera_description"),
-            "camera_position": shot_data.get("camera_position"),
-            "camera_angle_degrees": shot_data.get("camera_angle_degrees"),
-            "camera_distance_meters": shot_data.get("camera_distance_meters"),
-            "camera_height_meters": shot_data.get("camera_height_meters"),
-            "camera_movement_trajectory": shot_data.get("camera_movement_trajectory"),
-            "lens_focal_length": shot_data.get("lens_focal_length"),
-            "depth_of_field": shot_data.get("depth_of_field"),
-            "subject_position_frame": shot_data.get("subject_position_frame"),
-            "spatial_relationships": shot_data.get("spatial_relationships"),
-            "motion_physics": shot_data.get("motion_physics"),
+            "camera_position": dict_to_str(shot_data.get("camera_position")),
+            "camera_angle_degrees": dict_to_str(shot_data.get("camera_angle_degrees")),
+            "camera_distance_meters": dict_to_str(shot_data.get("camera_distance_meters")),
+            "camera_height_meters": dict_to_str(shot_data.get("camera_height_meters")),
+            "camera_movement_trajectory": dict_to_str(shot_data.get("camera_movement_trajectory")),
+            "lens_focal_length": dict_to_str(shot_data.get("lens_focal_length")),
+            "depth_of_field": dict_to_str(shot_data.get("depth_of_field")),
+            "subject_position_frame": dict_to_str(shot_data.get("subject_position_frame")),
+            "spatial_relationships": dict_to_str(shot_data.get("spatial_relationships")),
+            "motion_physics": dict_to_str(shot_data.get("motion_physics")),
             "entities": entities,
         }
         

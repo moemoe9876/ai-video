@@ -397,7 +397,7 @@ class PromptGenerationAgent:
         if "architecture" in pw and pw["architecture"]:
             arch = pw["architecture"]
             if isinstance(arch, list):
-                details.append(f"Architecture: {', '.join(arch)}")
+                details.append(f"Architecture: {', '.join(str(a) for a in arch)}")
             else:
                 details.append(f"Architecture: {arch}")
         
@@ -405,7 +405,17 @@ class PromptGenerationAgent:
         if "signs_text" in pw and pw["signs_text"]:
             signs = pw["signs_text"]
             if isinstance(signs, list):
-                details.append(f"Signage: {', '.join(signs)}")
+                sign_strs = []
+                for sign in signs:
+                    if isinstance(sign, dict):
+                        content = sign.get('content', '')
+                        lang = sign.get('language', '')
+                        sign_type = sign.get('type', '')
+                        sign_strs.append(f"'{content}' ({lang}, {sign_type})" if lang and sign_type else content)
+                    else:
+                        sign_strs.append(str(sign))
+                if sign_strs:
+                    details.append(f"Signage: {'; '.join(sign_strs)}")
             else:
                 details.append(f"Signage: {signs}")
         
@@ -413,25 +423,35 @@ class PromptGenerationAgent:
         if "vehicles" in pw and pw["vehicles"]:
             vehicles = pw["vehicles"]
             if isinstance(vehicles, list):
-                details.append(f"Vehicles: {', '.join(vehicles)}")
+                vehicle_strs = []
+                for vehicle in vehicles:
+                    if isinstance(vehicle, dict):
+                        make = vehicle.get('make_model_estimate', vehicle.get('type', ''))
+                        color = vehicle.get('color', '')
+                        position = vehicle.get('position', '')
+                        vehicle_strs.append(f"{color} {make} {position}" if color and position else f"{color} {make}" if color else make)
+                    else:
+                        vehicle_strs.append(str(vehicle))
+                if vehicle_strs:
+                    details.append(f"Vehicles: {', '.join(vehicle_strs)}")
             else:
                 details.append(f"Vehicles: {vehicles}")
         
         # Objects
         if "objects" in pw and pw["objects"]:
             objects = pw["objects"]
-            if isinstance(objects, list):
-                details.append(f"Objects: {', '.join(objects)}")
-            else:
+            if isinstance(objects, str):
                 details.append(f"Objects: {objects}")
+            elif isinstance(objects, list):
+                details.append(f"Objects: {', '.join(str(o) for o in objects)}")
         
         # Infrastructure
         if "infrastructure" in pw and pw["infrastructure"]:
             infra = pw["infrastructure"]
-            if isinstance(infra, list):
-                details.append(f"Infrastructure: {', '.join(infra)}")
-            else:
+            if isinstance(infra, str):
                 details.append(f"Infrastructure: {infra}")
+            elif isinstance(infra, list):
+                details.append(f"Infrastructure: {', '.join(str(i) for i in infra)}")
         
         return "; ".join(details) if details else None
     

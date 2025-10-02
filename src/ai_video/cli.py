@@ -20,6 +20,7 @@ from .settings import settings
 from .safety import validate_api_key, ValidationError
 from .logging import setup_logger
 from .utils import format_duration
+from .export import generate_detailed_markdown
 
 app = typer.Typer(
     name="ai-video",
@@ -97,10 +98,17 @@ def make_prompts(
         agent = PromptGenerationAgent()
         bundles = agent.generate_prompts(video_report, save_bundles=True)
         
+        # Generate detailed markdown
+        prompts_dir = path_builder.get_video_prompts_dir(video_report.video_id)
+        markdown_path = prompts_dir / "prompts_detailed.md"
+        console.print(f"[bold cyan]Generating detailed markdown...[/bold cyan]")
+        generate_detailed_markdown(video_report, markdown_path)
+        
         console.print(f"\n[bold green]✓ Prompt generation complete![/bold green]")
         console.print(f"[cyan]Video ID:[/cyan] {video_report.video_id}")
         console.print(f"[cyan]Scenes processed:[/cyan] {len(bundles)}")
-        console.print(f"[cyan]Prompts saved to:[/cyan] {path_builder.get_video_prompts_dir(video_report.video_id)}")
+        console.print(f"[cyan]Prompts saved to:[/cyan] {prompts_dir}")
+        console.print(f"[cyan]Detailed markdown:[/cyan] {markdown_path}")
         
         if verbose and bundles:
             console.print("\n[bold]Sample prompts:[/bold]")
@@ -173,6 +181,13 @@ def run_all(
                 video_id=manifest['video_id'],
                 report=report
             )
+            
+            # Generate detailed markdown
+            prompts_dir = path_builder.get_video_prompts_dir(manifest['video_id'])
+            markdown_path = prompts_dir / "prompts_detailed.md"
+            console.print(f"[bold cyan]Generating detailed markdown...[/bold cyan]")
+            generate_detailed_markdown(report, markdown_path)
+            export_paths['detailed_markdown'] = str(markdown_path)
             
             console.print(f"[bold green]✓ Export complete![/bold green]")
             for format_name, path in export_paths.items():

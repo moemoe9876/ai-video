@@ -1,0 +1,41 @@
+# AI Video Configuration
+
+# Asset directories
+assets_dir: "assets"
+inputs_dir: "assets/inputs"
+reports_dir: "assets/reports"
+prompts_dir: "assets/prompts"
+runs_dir: "assets/runs"
+logs_dir: "assets/logs"
+
+# Gemini configuration
+gemini:
+  model: "gemini-2.0-flash-exp"
+  max_retries: 3
+  timeout: 120
+  file_api_threshold_mb: 20
+
+# Video processing
+video:
+  default_fps: 1
+  max_duration_seconds: 3600
+  supported_formats:
+    - mp4
+    - mpeg
+    - mov
+    - avi
+    - webm
+
+# Prompt generation
+prompts:
+  include_timestamps: true
+  include_camera_details: true
+  include_lighting: true
+  include_style: true
+  max_prompt_length: 500
+
+# Pipeline
+pipeline:
+  checkpoint_enabled: true
+  retry_on_failure: true
+  max_retries: 3

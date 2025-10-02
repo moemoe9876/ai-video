@@ -1,0 +1,19 @@
+{
+  "run_id": "20251002_013100",
+  "video_source": "assets/inputs/video.mp4",
+  "video_id": null,
+  "started_at": "2025-10-02T01:31:00.557505",
+  "config": {
+    "start_offset": null,
+    "end_offset": null,
+    "fps": null,
+    "skip_analysis": false,
+    "skip_prompts": false
+  },
+  "artifacts": {},
+  "status": "failed",
+  "errors": [
+    "Analysis failed after 3 attempts: 1 validation error for Shot\nshot_type\n  Input should be 'wide', 'medium', 'close_up', 'extreme_close_up', 'over_shoulder', 'pov', 'two_shot' or 'establishing' [type=enum, input_value='high-angle long shot', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.11/v/enum"
+  ],
+  "failed_at": "2025-10-02T01:33:26.372485"
+}

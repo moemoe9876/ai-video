@@ -206,7 +206,7 @@ def run_all(
 @app.command()
 def export_prompts(
     video_id: str = typer.Argument(..., help="Video ID to export prompts for"),
-    format: str = typer.Option("all", "--format", "-f", help="Export format: md, json, shot-list, or all"),
+    format: str = typer.Option("all", "--format", "-f", help="Export format: json, shot-list, or all"),
     output_dir: Optional[Path] = typer.Option(None, "--output", "-o", help="Output directory"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
 ):
@@ -229,11 +229,6 @@ def export_prompts(
         report = load_model(report_path, VideoReport) if report_path.exists() else None
         
         exported = []
-        
-        if format in ["md", "all"]:
-            md_path = output_dir / "prompts.md"
-            PromptExporter.export_to_markdown(bundles, md_path, report)
-            exported.append(("Markdown", str(md_path)))
         
         if format in ["json", "all"]:
             json_path = output_dir / "prompts.json"

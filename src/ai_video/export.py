@@ -340,8 +340,8 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path, bundles: 
         if bundles is None and scene.shots and len(scene.shots) > 0:
             shot = scene.shots[0]
             if scene.duration >= 2.0:
-                action = shot.get('action', '').lower() if isinstance(shot, dict) else getattr(shot, 'action', '').lower()
-                camera_movement = shot.get('camera_movement', '').lower() if isinstance(shot, dict) else getattr(shot, 'camera_movement', '').lower()
+                action = shot.get('action', '').lower() if isinstance(shot, dict) else (getattr(shot, 'action', '') or '').lower()
+                camera_movement = shot.get('camera_movement', '').lower() if isinstance(shot, dict) else (getattr(shot, 'camera_movement', '') or '').lower()
                 movement_keywords = ['walk', 'move', 'turn', 'ride', 'approach', 'exit', 'enter']
                 camera_keywords = ['track', 'dolly', 'crane', 'follow', 'orbit']
                 has_movement = any(kw in action for kw in movement_keywords)
@@ -377,6 +377,135 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path, bundles: 
             # Scene and description
             if scene.description:
                 prompt_parts.append(scene.description)
+            
+            # Human subjects - FULL clothing and physical details
+            if scene.human_subjects:
+                human_parts = []
+                for subject in scene.human_subjects:
+                    if isinstance(subject, dict):
+                        subject_desc_parts = []
+                        
+                        # Demographics
+                        demographics = subject.get('demographics')
+                        if demographics:
+                            if isinstance(demographics, dict):
+                                demo_strs = []
+                                if demographics.get('age_group'):
+                                    demo_strs.append(demographics['age_group'])
+                                if demographics.get('gender_presentation'):
+                                    demo_strs.append(demographics['gender_presentation'])
+                                if demographics.get('ethnicity'):
+                                    demo_strs.append(demographics['ethnicity'])
+                                if demo_strs:
+                                    subject_desc_parts.append(' '.join(demo_strs))
+                            else:
+                                subject_desc_parts.append(str(demographics))
+                        
+                        # Physical description
+                        physical = subject.get('physical_description')
+                        if physical and physical != 'Not visible':
+                            if isinstance(physical, dict):
+                                phys_strs = []
+                                for key in ['build', 'height', 'hair', 'skin_tone']:
+                                    val = physical.get(key)
+                                    if val and val != 'Not visible':
+                                        phys_strs.append(val)
+                                if phys_strs:
+                                    subject_desc_parts.append(', '.join(phys_strs))
+                            elif physical:
+                                subject_desc_parts.append(str(physical))
+                        
+                        # Clothing - ALL details
+                        clothing = subject.get('clothing')
+                        if clothing:
+                            if isinstance(clothing, dict):
+                                clothing_strs = []
+                                for layer in ['upper_body', 'mid_layer', 'outer_layer', 'lower_body', 'footwear', 'accessories']:
+                                    val = clothing.get(layer)
+                                    if val and val != 'Not visible' and 'not visible' not in str(val).lower():
+                                        clothing_strs.append(str(val))
+                                if clothing_strs:
+                                    subject_desc_parts.append('wearing ' + ', '.join(clothing_strs))
+                            else:
+                                if str(clothing) != 'Not visible' and 'not visible' not in str(clothing).lower():
+                                    subject_desc_parts.append(f"wearing {clothing}")
+                        
+                        if subject_desc_parts:
+                            human_parts.append(', '.join(subject_desc_parts))
+                
+                if human_parts:
+                    prompt_parts.append('Human subjects: ' + '; '.join(human_parts))
+            
+            # Physical World - vehicles with full details (color, make, model)
+            if scene.physical_world:
+                pw = scene.physical_world
+                if isinstance(pw, dict):
+                    # Vehicles with COMPLETE details
+                    if pw.get('vehicles'):
+                        vehicles = pw['vehicles']
+                        if isinstance(vehicles, list):
+                            vehicle_descs = []
+                            for vehicle in vehicles:
+                                if isinstance(vehicle, dict):
+                                    # Get make/model with priority order
+                                    make_model = (vehicle.get('make_model') or 
+                                                vehicle.get('make_model_estimate') or 
+                                                vehicle.get('model') or 
+                                                vehicle.get('model_guess') or 
+                                                vehicle.get('type', ''))
+                                    
+                                    # Build complete vehicle description
+                                    color = vehicle.get('color', '')
+                                    year = vehicle.get('year') or vehicle.get('generation')
+                                    brand = vehicle.get('brand')
+                                    
+                                    # Combine brand and make_model intelligently
+                                    if brand and make_model and brand.lower() not in make_model.lower():
+                                        vehicle_desc = f"{color} {brand} {make_model}" if color else f"{brand} {make_model}"
+                                    elif color and make_model:
+                                        vehicle_desc = f"{color} {make_model}"
+                                    elif make_model:
+                                        vehicle_desc = make_model
+                                    elif color:
+                                        vehicle_desc = f"{color} vehicle"
+                                    else:
+                                        continue
+                                    
+                                    if year:
+                                        vehicle_desc += f" ({year})"
+                                    
+                                    vehicle_descs.append(vehicle_desc.strip())
+                                elif isinstance(vehicle, str) and vehicle != 'Not visible':
+                                    vehicle_descs.append(vehicle)
+                            
+                            if vehicle_descs:
+                                prompt_parts.append('Vehicles: ' + ', '.join(vehicle_descs))
+                    
+                    # Architecture
+                    if pw.get('architecture'):
+                        arch = pw['architecture']
+                        if isinstance(arch, list):
+                            arch_strs = [str(a) if not isinstance(a, dict) else a.get('description', str(a)) for a in arch]
+                            arch_str = ', '.join(arch_strs)
+                        else:
+                            arch_str = str(arch)
+                        if arch_str:
+                            prompt_parts.append(f"Architecture: {arch_str}")
+                    
+                    # Signage
+                    if pw.get('signs_text'):
+                        signs = pw['signs_text']
+                        if isinstance(signs, list):
+                            sign_texts = []
+                            for sign in signs[:3]:  # Include up to 3 signs
+                                if isinstance(sign, dict):
+                                    content = sign.get('content', '')
+                                    if content:
+                                        sign_texts.append(content)
+                                elif isinstance(sign, str):
+                                    sign_texts.append(sign)
+                            if sign_texts:
+                                prompt_parts.append('Signage: ' + ', '.join(sign_texts))
             
             # Location context
             prompt_parts.append(f"Location: {scene.location}")
@@ -429,7 +558,7 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path, bundles: 
                     desc = scene.description
                     # Add "at end of movement" or "having completed action"
                     if scene.shots and scene.shots[0].action:
-                        action = scene.shots[0].action.lower()
+                        action = (scene.shots[0].action or '').lower()
                         if any(kw in action for kw in ['walk', 'move', 'approach']):
                             desc += " having completed movement"
                         elif 'turn' in action:

@@ -168,10 +168,6 @@ class PromptExporter:
         
         paths = {}
         
-        md_path = output_dir / "prompts.md"
-        PromptExporter.export_to_markdown(bundles, md_path, report, include_metadata=True)
-        paths["markdown"] = str(md_path)
-        
         json_path = output_dir / "prompts.json"
         PromptExporter.export_to_json(bundles, json_path, report, include_metadata=True)
         paths["json"] = str(json_path)

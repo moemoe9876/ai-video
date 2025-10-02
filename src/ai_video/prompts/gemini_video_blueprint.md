@@ -259,23 +259,81 @@ Document EVERYTHING visible:
 - **Brand Names & Logos**: Any visible commercial branding
 - **Graffiti/Street Art**: Content and location
 
-#### Vehicles (COMPLETE SPECIFICATIONS):
-- **Make & Model**: "White Toyota HiAce van, appears to be 1990s model (H100 generation)"
-- **Age/Condition**: "Well-maintained, minor rust on lower panels"
-- **License Plate**: Region/country indicators if visible
-- **Modifications**: After-market parts, damage, custom features
-- **Color**: Exact shade (pearl white, metallic silver, matte black)
-- **Position**: Parked/moving, angle relative to camera
-- **Occupancy**: Number of people visible inside
+#### Vehicles (COMPLETE SPECIFICATIONS & IDENTIFICATION):
+**CRITICAL: Always attempt to identify make, model, and year**
 
-#### Objects & Props:
-- **Every Visible Item** with:
-  - Material composition
-  - Color and finish
-  - Size relative to surroundings
-  - Condition
-  - Brand if visible
-  - Position in 3D space
+- **Brand/Logo Identification**:
+  - Look for ANY visible badges, emblems, or logos
+  - Front grille badge, rear badge, wheel center caps, side badges
+  - "Honda logo visible on fuel tank"
+  - "Toyota emblem on front grille"
+  - "Suzuki badge on side panel"
+
+- **Make & Model Identification** (be as specific as possible):
+  - **If logo/badge visible**: "Honda CBR600RR based on visible Honda badge and sport bike styling"
+  - **If partial info visible**: "Appears to be Honda CB series based on tank shape and exhaust configuration, likely CB400 or CB500"
+  - **If only silhouette visible**: "Appears to be Toyota van, likely HiAce model based on boxy shape and size, 1990s generation (H100)"
+  - **Use ALL visible clues**:
+    - Body shape and proportions
+    - Grille design and headlight configuration
+    - Taillight design
+    - Wheel design
+    - Exhaust configuration (for motorcycles)
+    - Tank shape (for motorcycles)
+    - Door handles, mirrors, window shape
+    - Trim level indicators
+
+- **Year/Generation Identification**:
+  - "1990s model based on body style, appears to be 1995-1999 generation"
+  - "Modern design with LED headlights, likely 2020+ model"
+  - "Vintage motorcycle, appears to be 1980s based on round headlight and spoke wheels"
+
+- **Specific Model Details**:
+  - **Cars/Vans**: "White Toyota HiAce H100 van (1989-2004 generation), appears to be mid-90s model based on front grille design"
+  - **Motorcycles**: "Red and white Honda motorcycle, appears to be CBR series sport bike based on fairings, likely CBR600 or CBR1000, 2000s generation"
+  - **Scooters**: "Black Yamaha scooter, appears to be Nouvo or Mio model based on body shape"
+
+- **Color & Finish**: Exact shade (pearl white, metallic silver, matte black, two-tone)
+- **Age/Condition**: "Well-maintained, minor rust on lower panels", "Faded paint indicating age"
+- **License Plate**: Region/country indicators, partial numbers if visible
+- **Modifications**: After-market parts, custom features, damage
+- **Position**: Parked/moving, angle relative to camera, distance from camera
+- **Occupancy**: Number of people visible inside, driver position
+
+#### Objects & Props (COMPLETE IDENTIFICATION):
+**CRITICAL: Identify brands, makes, and models for ALL objects**
+
+- **Every Visible Item** with complete identification:
+  
+  - **Brand/Logo Identification**:
+    - Look for ANY visible text, logos, or brand markers
+    - "Coca-Cola vending machine" not just "vending machine"
+    - "7-Eleven storefront" not just "convenience store"
+    - "Nike swoosh visible on shoes"
+    - "Apple iPhone based on camera layout and design"
+  
+  - **Product Identification**:
+    - **Electronics**: "Appears to be iPhone 12 or 13 based on camera bump design and notch"
+    - **Appliances**: "Red Coca-Cola vending machine, appears to be vintage 1990s model"
+    - **Furniture**: "Metal folding chair, appears to be standard commercial style"
+    - **Equipment**: "Honda generator visible, appears to be EU series portable model"
+    - Use visual characteristics to identify:
+      - Shape, proportions, design language
+      - Color schemes typical of brands
+      - Logo placement and style
+      - Product generation/era
+  
+  - **Packaging & Products**:
+    - "Plastic bag with visible 7-Eleven logo"
+    - "Can of beverage, appears to be Pepsi based on blue and red colors"
+    - "Food packaging with Chinese text, appears to be instant noodles"
+  
+  - **Material composition**: Metal, plastic, wood, glass, fabric
+  - **Color and finish**: Exact colors, glossy/matte/textured
+  - **Size relative to surroundings**: "Approximately 1 meter tall", "Half size of person"
+  - **Condition**: New, used, worn, damaged, vintage
+  - **Position in 3D space**: Distance from camera, position in frame
+  - **Function/Purpose**: What is it used for?
 
 #### Infrastructure:
 - **Road Surface**: Asphalt, concrete, cobblestone, condition
@@ -610,32 +668,61 @@ Provide your analysis in a structured JSON format that matches this schema:
 
 6. **READ ALL TEXT**: Attempt to read EVERY visible sign, even partial/blurry text. Even if you can only see "...chen N..." - document it! This is critical for recreation.
 
-7. **SURFACE AWARENESS**: Always specify what surface subjects are on:
+7. **BRAND & LOGO IDENTIFICATION** (CRITICAL):
+   - **Look for ALL logos, badges, emblems, brand names**
+   - **Vehicles**: Identify make, model, and year using visible badges and characteristics
+     - "Honda CBR600RR based on visible badge and sport bike styling"
+     - "Appears to be Toyota HiAce H100 based on body shape, 1990s generation"
+   - **Objects**: Identify brands on everything
+     - "Coca-Cola vending machine" not "vending machine"
+     - "7-Eleven storefront" not "convenience store"
+     - "Nike swoosh on shoes"
+   - **Clothing**: Any visible brand logos or text
+     - "Nike logo on t-shirt", "Adidas stripes on shoes"
+   - **Make educated guesses** when exact model unclear:
+     - "Appears to be Honda CB series based on tank shape"
+     - "Likely iPhone 12 or 13 based on camera design"
+   - **Use ALL visual clues** to identify:
+     - Logo/badge design and placement
+     - Body shape, proportions, design language
+     - Color schemes typical of brands
+     - Era-specific features
+
+8. **SURFACE AWARENESS**: Always specify what surface subjects are on:
    - "Walking on concrete sidewalk"
    - "Standing in the road on asphalt"
    - "Sitting on motorcycle seat"
    - "On gravel path"
 
-8. **DOCUMENT EVERYTHING VISIBLE**: The AI needs EVERY detail:
+9. **DOCUMENT EVERYTHING VISIBLE**: The AI needs EVERY detail:
    - Every person (including background, partial, out-of-focus)
    - Every object (foreground and background)
    - Every building and architectural element
    - Every sign and text element
-   - Every vehicle
+   - Every vehicle with make/model identification
+   - All brands, logos, and product identifications
    - All shadows, reflections, lighting effects
    - Do NOT summarize or skip elements - be exhaustive
 
-9. **USE PROFESSIONAL TERMINOLOGY**: Use correct cinematography, lighting, and color science terms from the standards provided.
+10. **USE PROFESSIONAL TERMINOLOGY**: Use correct cinematography, lighting, and color science terms from the standards provided.
 
-10. **MEASUREMENTS OVER DESCRIPTIONS**: 
+11. **MEASUREMENTS OVER DESCRIPTIONS**: 
     - "3 meters from camera" NOT "close to camera"
     - "30-degree downward angle" NOT "high angle shot"
     - "Subject in right third of frame, lower third vertically" NOT "subject on right"
     - "1.5 m/s walking speed" NOT "slow walk"
+    - "Honda CBR600RR" NOT "motorcycle"
+    - "White Toyota HiAce H100 van, 1990s generation" NOT "white van"
 
-11. **CONSISTENCY**: Maintain exact names and descriptions for recurring elements across all scenes.
+12. **CONSISTENCY**: Maintain exact names and descriptions for recurring elements across all scenes.
 
-12. **NO ASSUMPTIONS**: If you can't determine something, state "not visible" or "indeterminable" rather than guessing.
+13. **EDUCATED GUESSES ARE ENCOURAGED**: If you can see partial information:
+    - "Appears to be Honda CB series based on visible tank shape and exhaust"
+    - "Likely 7-Eleven based on green and orange color scheme"
+    - "Appears to be iPhone based on camera layout, possibly 12 or 13 generation"
+    - Use context clues, design language, and partial features to make informed identifications
+
+14. **NO ASSUMPTIONS ON UNCERTAIN DETAILS**: If you truly can't determine something after attempting identification, state "not visible" or "indeterminable" rather than making random guesses.
 
 ---
 
@@ -643,11 +730,14 @@ Provide your analysis in a structured JSON format that matches this schema:
 
 An AI reading your analysis should be able to recreate the video almost perfectly by understanding:
 - **WHERE**: Exact camera position, angle, distance
-- **WHO**: Every person with complete appearance details
+- **WHO**: Every person with complete appearance details (clothing, demographics, positioning)
 - **WHAT**: Every object, building, sign, vehicle visible
+- **WHICH**: Specific makes, models, brands, logos (Honda CBR600, Toyota HiAce, Nike shoes, 7-Eleven)
 - **HOW**: Physics of movement (hair, clothing, shadows)
 - **WHERE IN FRAME**: Exact positioning (left/right, top/bottom, foreground/background)
 - **ON WHAT**: What surface are subjects on (sidewalk, road, etc.)
+
+**BRAND IDENTIFICATION IS CRITICAL**: Don't just say "motorcycle" - identify it as "Honda CBR600RR" or "Appears to be Honda CB series based on tank shape". Don't say "van" - identify it as "White Toyota HiAce H100, 1990s generation". Use logos, badges, design characteristics, and context clues to identify specific makes and models.
 
 MORE DETAIL = BETTER RECREATION. Be exhaustive, not summary.
 

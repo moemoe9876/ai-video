@@ -94,34 +94,78 @@ class PromptGenerationAgent:
         return bundle
     
     def _generate_image_prompt(self, shot: Shot, scene: Scene, report: VideoReport) -> PromptSpec:
-        """Generate a text-to-image prompt for a shot."""
+        """Generate an ultra-detailed text-to-image prompt for a shot."""
+        # Core elements
         subject = self._extract_subject(shot, scene)
         action = shot.action
-        scene_desc = self._build_scene_description(scene)
+        scene_desc = self._build_detailed_scene_description(scene, report)
+        
+        # Technical cinematography
         camera = self._build_camera_description(shot)
-        lighting = scene.lighting or report.color_grading or "natural lighting"
-        style = scene.style or report.overall_style or "cinematic, realistic"
+        lens_desc = self._extract_lens_details(report, scene)
         
-        prompt_parts = [subject]
+        # Lighting with professional terminology  
+        lighting = self._build_detailed_lighting(scene, report)
         
+        # Film stock and style
+        film_stock = self._extract_film_stock(scene, report)
+        style = self._build_comprehensive_style(scene, report)
+        
+        # Physical world details
+        physical_details = self._extract_physical_world_details(scene)
+        
+        # Human subjects details
+        human_details = self._extract_human_subjects_details(scene)
+        
+        # Texture and material details
+        texture_details = self._extract_texture_details(scene)
+        
+        # Build comprehensive prompt
+        prompt_parts = []
+        
+        # Subject with detailed human descriptions
+        if human_details:
+            prompt_parts.append(f"{subject}. {human_details}")
+        else:
+            prompt_parts.append(subject)
+        
+        # Action
         if action:
             prompt_parts.append(action)
         
-        prompt_parts.append(f"in {scene_desc}")
+        # Scene with physical world details
+        scene_part = f"in {scene_desc}"
+        if physical_details:
+            scene_part += f". Physical environment: {physical_details}"
+        prompt_parts.append(scene_part)
         
-        if self.config.include_camera_details and camera:
-            prompt_parts.append(camera)
+        # Camera and lens
+        if self.config.include_camera_details:
+            if camera:
+                prompt_parts.append(f"Camera: {camera}")
+            if lens_desc:
+                prompt_parts.append(f"Lens: {lens_desc}")
         
+        # Lighting with professional detail
         if self.config.include_lighting and lighting:
-            prompt_parts.append(lighting)
+            prompt_parts.append(f"Lighting: {lighting}")
         
-        if self.config.include_style and style:
-            prompt_parts.append(style)
+        # Texture and materials
+        if texture_details:
+            prompt_parts.append(f"Textures: {texture_details}")
+        
+        # Film stock and style
+        if self.config.include_style:
+            if film_stock:
+                prompt_parts.append(f"Film stock: {film_stock}")
+            if style:
+                prompt_parts.append(f"Style: {style}")
         
         prompt_text = ". ".join(prompt_parts) + "."
         
-        if self.config.max_prompt_length and len(prompt_text) > self.config.max_prompt_length:
-            prompt_text = prompt_text[:self.config.max_prompt_length - 3] + "..."
+        # Don't truncate - we want ALL the detail
+        # if self.config.max_prompt_length and len(prompt_text) > self.config.max_prompt_length:
+        #     prompt_text = prompt_text[:self.config.max_prompt_length - 3] + "..."
         
         return PromptSpec(
             prompt_type=PromptType.TEXT_TO_IMAGE,
@@ -132,33 +176,60 @@ class PromptGenerationAgent:
             camera=camera if self.config.include_camera_details else None,
             lighting=lighting if self.config.include_lighting else None,
             style=style if self.config.include_style else None,
-            negative_prompt="blur, blurry, out of focus, distorted, low quality, pixelated, watermark"
+            negative_prompt="blur, blurry, out of focus, distorted, low quality, pixelated, grainy artifacts, watermark, text overlay, bad anatomy, deformed"
         )
     
     def _generate_video_prompt(self, shot: Shot, scene: Scene, report: VideoReport) -> PromptSpec:
-        """Generate a text-to-video or image-to-video prompt for a shot."""
+        """Generate an ultra-detailed text-to-video or image-to-video prompt for a shot."""
         subject = self._extract_subject(shot, scene)
         action = shot.action
-        scene_desc = self._build_scene_description(scene)
+        scene_desc = self._build_detailed_scene_description(scene, report)
         camera = self._build_camera_movement_description(shot)
-        lighting = scene.lighting or report.color_grading or "natural lighting"
-        style = scene.style or report.overall_style or "cinematic"
+        lighting = self._build_detailed_lighting(scene, report)
+        film_stock = self._extract_film_stock(scene, report)
+        style = self._build_comprehensive_style(scene, report)
+        physical_details = self._extract_physical_world_details(scene)
+        human_details = self._extract_human_subjects_details(scene)
         
-        prompt_parts = [subject, action, f"in {scene_desc}"]
+        # Build comprehensive video prompt
+        prompt_parts = []
         
+        # Subject with human details
+        if human_details:
+            prompt_parts.append(f"{subject}. {human_details}")
+        else:
+            prompt_parts.append(subject)
+        
+        # Action
+        if action:
+            prompt_parts.append(action)
+        
+        # Scene with physical details
+        scene_part = f"in {scene_desc}"
+        if physical_details:
+            scene_part += f". Environment: {physical_details}"
+        prompt_parts.append(scene_part)
+        
+        # Camera movement
         if self.config.include_camera_details and camera:
-            prompt_parts.append(camera)
+            prompt_parts.append(f"Camera: {camera}")
         
+        # Lighting
         if self.config.include_lighting and lighting:
-            prompt_parts.append(f"with {lighting}")
+            prompt_parts.append(f"Lighting: {lighting}")
         
-        if self.config.include_style and style:
-            prompt_parts.append(f"{style} style")
+        # Film stock and style
+        if self.config.include_style:
+            if film_stock:
+                prompt_parts.append(f"Film look: {film_stock}")
+            if style:
+                prompt_parts.append(f"Style: {style}")
         
         prompt_text = ". ".join(prompt_parts) + "."
         
-        if self.config.max_prompt_length and len(prompt_text) > self.config.max_prompt_length:
-            prompt_text = prompt_text[:self.config.max_prompt_length - 3] + "..."
+        # Don't truncate - keep all detail for accurate recreation
+        # if self.config.max_prompt_length and len(prompt_text) > self.config.max_prompt_length:
+        #     prompt_text = prompt_text[:self.config.max_prompt_length - 3] + "..."
         
         return PromptSpec(
             prompt_type=PromptType.IMAGE_TO_VIDEO,
@@ -236,24 +307,194 @@ class PromptGenerationAgent:
             return entity.name
         return "Scene"
     
-    def _build_scene_description(self, scene: Scene) -> str:
-        """Build a scene description."""
+    def _build_detailed_scene_description(self, scene: Scene, report: VideoReport) -> str:
+        """Build a comprehensive scene description with all environmental details."""
         parts = [scene.location]
         
+        # Time and environmental context
+        if scene.time_of_day:
+            parts.append(scene.time_of_day)
+        if scene.weather:
+            parts.append(scene.weather)
+        if scene.season:
+            parts.append(scene.season)
+        
+        # Mood and atmosphere
         if scene.mood:
             parts.append(f"{scene.mood} atmosphere")
         
+        # Color information
         if scene.color_palette:
             parts.append(scene.color_palette)
+        if scene.color_temperature:
+            parts.append(scene.color_temperature)
+        
+        # Cultural context
+        if report.cultural_context:
+            parts.append(report.cultural_context)
         
         return ", ".join(parts)
+    
+    def _extract_lens_details(self, report: VideoReport, scene: Scene) -> str:
+        """Extract lens characteristics."""
+        if report.lens_characteristics:
+            return report.lens_characteristics
+        return None
+    
+    def _build_detailed_lighting(self, scene: Scene, report: VideoReport) -> str:
+        """Build comprehensive lighting description using professional terminology."""
+        parts = []
+        
+        # Specific lighting type (from standards)
+        if scene.lighting_type:
+            parts.append(scene.lighting_type)
+        elif scene.lighting:
+            parts.append(scene.lighting)
+        
+        # Lighting direction
+        if scene.lighting_direction:
+            parts.append(f"Direction: {scene.lighting_direction}")
+        
+        # Color temperature
+        if scene.lighting_temperature:
+            parts.append(scene.lighting_temperature)
+        
+        return ", ".join(parts) if parts else (scene.lighting or "natural lighting")
+    
+    def _extract_film_stock(self, scene: Scene, report: VideoReport) -> str:
+        """Extract film stock characteristics."""
+        # Scene-specific film look
+        if scene.film_stock_resemblance:
+            return scene.film_stock_resemblance
+        # Overall film look
+        if report.film_stock_look:
+            return report.film_stock_look
+        return None
+    
+    def _build_comprehensive_style(self, scene: Scene, report: VideoReport) -> str:
+        """Build comprehensive style description."""
+        parts = []
+        
+        if scene.style:
+            parts.append(scene.style)
+        elif report.overall_style:
+            parts.append(report.overall_style)
+        
+        if report.cultural_context and report.cultural_context not in str(scene.style):
+            parts.append(report.cultural_context)
+        
+        return ", ".join(parts) if parts else "cinematic, realistic"
+    
+    def _extract_physical_world_details(self, scene: Scene) -> str:
+        """Extract all physical world details - architecture, signs, vehicles, objects."""
+        if not scene.physical_world:
+            return None
+        
+        details = []
+        pw = scene.physical_world
+        
+        # Architecture
+        if "architecture" in pw and pw["architecture"]:
+            arch = pw["architecture"]
+            if isinstance(arch, list):
+                details.append(f"Architecture: {', '.join(arch)}")
+            else:
+                details.append(f"Architecture: {arch}")
+        
+        # Signs and text
+        if "signs_text" in pw and pw["signs_text"]:
+            signs = pw["signs_text"]
+            if isinstance(signs, list):
+                details.append(f"Signage: {', '.join(signs)}")
+            else:
+                details.append(f"Signage: {signs}")
+        
+        # Vehicles
+        if "vehicles" in pw and pw["vehicles"]:
+            vehicles = pw["vehicles"]
+            if isinstance(vehicles, list):
+                details.append(f"Vehicles: {', '.join(vehicles)}")
+            else:
+                details.append(f"Vehicles: {vehicles}")
+        
+        # Objects
+        if "objects" in pw and pw["objects"]:
+            objects = pw["objects"]
+            if isinstance(objects, list):
+                details.append(f"Objects: {', '.join(objects)}")
+            else:
+                details.append(f"Objects: {objects}")
+        
+        # Infrastructure
+        if "infrastructure" in pw and pw["infrastructure"]:
+            infra = pw["infrastructure"]
+            if isinstance(infra, list):
+                details.append(f"Infrastructure: {', '.join(infra)}")
+            else:
+                details.append(f"Infrastructure: {infra}")
+        
+        return "; ".join(details) if details else None
+    
+    def _extract_human_subjects_details(self, scene: Scene) -> str:
+        """Extract detailed human subject information."""
+        if not scene.human_subjects:
+            return None
+        
+        details = []
+        for subject in scene.human_subjects:
+            if isinstance(subject, dict):
+                parts = []
+                
+                # Count and position
+                if "count" in subject:
+                    parts.append(f"{subject['count']} person(s)")
+                if "position" in subject:
+                    parts.append(f"positioned {subject['position']}")
+                
+                # Demographics
+                if "demographics" in subject:
+                    parts.append(subject["demographics"])
+                
+                # Physical description
+                if "physical_description" in subject:
+                    parts.append(subject["physical_description"])
+                
+                # Clothing
+                if "clothing" in subject:
+                    parts.append(f"wearing {subject['clothing']}")
+                
+                # Body language
+                if "body_language" in subject:
+                    parts.append(f"with {subject['body_language']}")
+                
+                if parts:
+                    details.append(", ".join(parts))
+        
+        return "; ".join(details) if details else None
+    
+    def _extract_texture_details(self, scene: Scene) -> str:
+        """Extract texture and material details."""
+        if not scene.texture_details:
+            return None
+        
+        textures = scene.texture_details
+        if isinstance(textures, dict):
+            parts = []
+            for material, description in textures.items():
+                parts.append(f"{material}: {description}")
+            return ", ".join(parts)
+        elif isinstance(textures, str):
+            return textures
+        
+        return None
     
     def _build_camera_description(self, shot: Shot) -> str:
         """Build camera description for still image."""
         parts = []
         
         if shot.shot_type:
-            parts.append(f"{shot.shot_type.value} shot")
+            shot_type_str = shot.shot_type if isinstance(shot.shot_type, str) else shot.shot_type.value
+            parts.append(f"{shot_type_str} shot")
         
         if shot.camera_description:
             parts.append(shot.camera_description)
@@ -265,7 +506,8 @@ class PromptGenerationAgent:
         parts = []
         
         if shot.camera_movement:
-            parts.append(f"camera {shot.camera_movement.value}")
+            movement_str = shot.camera_movement if isinstance(shot.camera_movement, str) else shot.camera_movement.value
+            parts.append(f"camera {movement_str}")
         
         if shot.camera_description:
             parts.append(shot.camera_description)

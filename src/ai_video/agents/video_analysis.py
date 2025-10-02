@@ -80,9 +80,12 @@ class VideoAnalysisAgent:
             "resolution": analysis_data.get("resolution"),
             "title": analysis_data.get("title"),
             "summary": analysis_data.get("summary", ""),
+            "film_stock_look": analysis_data.get("film_stock_look"),
+            "lens_characteristics": analysis_data.get("lens_characteristics"),
             "overall_style": analysis_data.get("overall_style"),
             "overall_mood": analysis_data.get("overall_mood"),
             "color_grading": analysis_data.get("color_grading"),
+            "cultural_context": analysis_data.get("cultural_context"),
             "created_at": datetime.now(),
         }
         
@@ -95,8 +98,12 @@ class VideoAnalysisAgent:
         
         main_entities = []
         for entity_data in analysis_data.get("main_entities", []):
-            entity = Entity(**entity_data)
-            main_entities.append(entity)
+            if isinstance(entity_data, dict):
+                entity = Entity(**entity_data)
+                main_entities.append(entity)
+            elif isinstance(entity_data, str):
+                entity = Entity(name=entity_data, type="unknown")
+                main_entities.append(entity)
         
         report_data["main_entities"] = main_entities
         
@@ -106,13 +113,33 @@ class VideoAnalysisAgent:
         """Build a Scene from raw data."""
         shots = []
         for shot_data in scene_data.get("shots", []):
-            shot = self._build_shot(shot_data)
-            shots.append(shot)
+            if isinstance(shot_data, dict):
+                shot = self._build_shot(shot_data)
+                shots.append(shot)
         
         entities = []
         for entity_data in scene_data.get("key_entities", []):
-            entity = Entity(**entity_data)
-            entities.append(entity)
+            if isinstance(entity_data, dict):
+                entity = Entity(**entity_data)
+                entities.append(entity)
+            elif isinstance(entity_data, str):
+                entity = Entity(name=entity_data, type="unknown")
+                entities.append(entity)
+        
+        # Handle lighting - might be string or dict
+        lighting_data = scene_data.get("lighting")
+        if isinstance(lighting_data, dict):
+            # Convert dict to string description
+            lighting_str = lighting_data.get("type", "")
+            if "direction" in lighting_data:
+                lighting_str += f", {lighting_data['direction']}"
+            if "quality" in lighting_data:
+                lighting_str += f", {lighting_data['quality']}"
+            if "temperature" in lighting_data:
+                lighting_str += f", {lighting_data['temperature']}"
+            lighting = lighting_str if lighting_str else None
+        else:
+            lighting = lighting_data
         
         scene_dict = {
             "scene_index": scene_data.get("scene_index", 0),
@@ -120,11 +147,22 @@ class VideoAnalysisAgent:
             "end_time": scene_data.get("end_time", 0.0),
             "duration": scene_data.get("duration", 0.0),
             "location": scene_data.get("location", "Unknown"),
+            "time_of_day": scene_data.get("time_of_day"),
+            "weather": scene_data.get("weather"),
+            "season": scene_data.get("season"),
             "description": scene_data.get("description", ""),
             "mood": scene_data.get("mood"),
-            "lighting": scene_data.get("lighting"),
+            "lighting": lighting,
+            "lighting_type": scene_data.get("lighting_type"),
+            "lighting_direction": scene_data.get("lighting_direction"),
+            "lighting_temperature": scene_data.get("lighting_temperature"),
             "color_palette": scene_data.get("color_palette"),
+            "color_temperature": scene_data.get("color_temperature"),
+            "film_stock_resemblance": scene_data.get("film_stock_resemblance"),
             "style": scene_data.get("style"),
+            "physical_world": scene_data.get("physical_world"),
+            "human_subjects": scene_data.get("human_subjects"),
+            "texture_details": scene_data.get("texture_details"),
             "shots": shots,
             "key_entities": entities,
         }
@@ -135,8 +173,12 @@ class VideoAnalysisAgent:
         """Build a Shot from raw data."""
         entities = []
         for entity_data in shot_data.get("entities", []):
-            entity = Entity(**entity_data)
-            entities.append(entity)
+            if isinstance(entity_data, dict):
+                entity = Entity(**entity_data)
+                entities.append(entity)
+            elif isinstance(entity_data, str):
+                entity = Entity(name=entity_data, type="unknown")
+                entities.append(entity)
         
         shot_dict = {
             "shot_index": shot_data.get("shot_index", 0),
@@ -148,6 +190,16 @@ class VideoAnalysisAgent:
             "shot_type": shot_data.get("shot_type"),
             "camera_movement": shot_data.get("camera_movement"),
             "camera_description": shot_data.get("camera_description"),
+            "camera_position": shot_data.get("camera_position"),
+            "camera_angle_degrees": shot_data.get("camera_angle_degrees"),
+            "camera_distance_meters": shot_data.get("camera_distance_meters"),
+            "camera_height_meters": shot_data.get("camera_height_meters"),
+            "camera_movement_trajectory": shot_data.get("camera_movement_trajectory"),
+            "lens_focal_length": shot_data.get("lens_focal_length"),
+            "depth_of_field": shot_data.get("depth_of_field"),
+            "subject_position_frame": shot_data.get("subject_position_frame"),
+            "spatial_relationships": shot_data.get("spatial_relationships"),
+            "motion_physics": shot_data.get("motion_physics"),
             "entities": entities,
         }
         

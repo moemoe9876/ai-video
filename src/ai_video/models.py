@@ -60,6 +60,16 @@ class Shot(BaseModel):
     shot_type: Optional[str] = None
     camera_movement: Optional[str] = None
     camera_description: Optional[str] = None
+    camera_position: Optional[str] = Field(default=None, description="Exact camera position relative to subject")
+    camera_angle_degrees: Optional[str] = Field(default=None, description="Camera angle in degrees")
+    camera_distance_meters: Optional[str] = Field(default=None, description="Distance from subject in meters")
+    camera_height_meters: Optional[str] = Field(default=None, description="Height of camera from ground")
+    camera_movement_trajectory: Optional[str] = Field(default=None, description="Detailed movement path")
+    lens_focal_length: Optional[str] = Field(default=None, description="Estimated focal length")
+    depth_of_field: Optional[str] = Field(default=None, description="Depth of field characteristics")
+    subject_position_frame: Optional[str] = Field(default=None, description="Subject position in frame")
+    spatial_relationships: Optional[str] = Field(default=None, description="3D spatial relationships")
+    motion_physics: Optional[str] = Field(default=None, description="Physics of movement in shot")
     entities: list[Entity] = Field(default_factory=list)
     
     class Config:
@@ -85,11 +95,22 @@ class Scene(BaseModel):
     end_time: float = Field(description="End time in seconds")
     duration: float = Field(description="Duration in seconds")
     location: str = Field(description="Where the scene takes place")
+    time_of_day: Optional[str] = Field(default=None, description="Specific time of day")
+    weather: Optional[str] = Field(default=None, description="Weather conditions")
+    season: Optional[str] = Field(default=None, description="Season if determinable")
     description: str
     mood: Optional[str] = None
     lighting: Optional[str] = None
+    lighting_type: Optional[str] = Field(default=None, description="Specific lighting type from standards")
+    lighting_direction: Optional[str] = Field(default=None, description="Direction of light sources")
+    lighting_temperature: Optional[str] = Field(default=None, description="Color temperature of lighting")
     color_palette: Optional[str] = None
+    color_temperature: Optional[str] = Field(default=None, description="Overall color temperature")
+    film_stock_resemblance: Optional[str] = Field(default=None, description="Which film stock this resembles")
     style: Optional[str] = None
+    physical_world: Optional[dict] = Field(default=None, description="Physical world details - architecture, signs, vehicles, objects")
+    human_subjects: Optional[list[dict]] = Field(default=None, description="Detailed human subject information")
+    texture_details: Optional[dict] = Field(default=None, description="Surface and material textures")
     shots: list[Shot] = Field(default_factory=list)
     key_entities: list[Entity] = Field(default_factory=list)
     
@@ -120,9 +141,12 @@ class VideoReport(BaseModel):
     resolution: Optional[str] = None
     title: Optional[str] = None
     summary: str = Field(description="Overall summary of the video")
+    film_stock_look: Optional[str] = Field(default=None, description="Film stock characteristics")
+    lens_characteristics: Optional[str] = Field(default=None, description="Lens and optical characteristics")
     overall_style: Optional[str] = None
     overall_mood: Optional[str] = None
     color_grading: Optional[str] = None
+    cultural_context: Optional[str] = Field(default=None, description="Cultural and temporal context")
     scenes: list[Scene] = Field(default_factory=list)
     main_entities: list[Entity] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=datetime.now)

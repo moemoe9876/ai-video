@@ -100,26 +100,98 @@ For EACH person, provide EXHAUSTIVE detail:
   - Texture: straight, wavy, curly, coily
 - **Facial Features** (if visible):
   - Face shape: oval, round, square, heart-shaped
-  - Distinctive features: glasses, facial hair, makeup
-  - Expression: neutral, smiling, serious, concerned
-- **Clothing** (COMPLETE inventory):
-  - Upper body: Exact item (t-shirt, button-up, jacket), color, pattern, fit
-  - Lower body: Pants/skirt/shorts, color, style (jeans, chinos, etc.)
-  - Footwear: Type and color
-  - Accessories: Watch (which wrist), jewelry, bags (type and how carried), hats, glasses
-  - Brands if visible: Nike shoes, Adidas shirt, etc.
-  - Condition: New, worn, vintage, distressed
-- **Body Language & Movement Physics**:
-  - Walking speed and gait
-  - Arm swing characteristics
-  - Head position and movement
-  - Weight distribution
-  - Confidence level in movement
-- **Exact Position**:
+  - Distinctive features: glasses, facial hair, mustache, beard, makeup
+  - Eye characteristics: color if visible, glasses frame style
+  - Expression: neutral, smiling, serious, concerned, laughing
+  - Distinguishing marks: moles, scars, tattoos (if visible)
+
+- **CLOTHING** (ULTRA-DETAILED - CRITICAL FOR RECREATION):
+  **Upper Body (describe EVERY layer):**
+  - Base layer: T-shirt, tank top, blouse, etc.
+  - Mid layer: Shirt, sweater, cardigan
+  - Outer layer: Jacket, coat, vest
+  - For EACH garment:
+    - **Exact item name**: "short-sleeve crew-neck t-shirt", "long-sleeve button-up oxford shirt", "zip-up hoodie"
+    - **Color(s)**: Primary and secondary (e.g., "navy blue with white collar", "heather gray")
+    - **Pattern/Design**: Solid, striped, plaid, graphic print, logo, text
+    - **Material appearance**: Cotton, denim, leather, synthetic, knit, woven
+    - **Fit**: Oversized, fitted, loose, baggy, tight, tailored
+    - **Sleeves**: Long, short, 3/4, rolled up, sleeve details
+    - **Collar**: Crew neck, V-neck, polo, button-down, no collar
+    - **Condition**: Brand new, slightly worn, vintage/distressed, faded, stained
+    - **Brands/Logos**: Any visible text, logos, or brand markers
+  
+  **Lower Body:**
+  - **Exact item**: "High-waisted straight-leg jeans", "cargo shorts", "pleated midi skirt"
+  - **Color**: Exact shade (light-wash denim, black, khaki, etc.)
+  - **Material**: Denim, cotton, polyester, wool
+  - **Fit**: Skinny, slim, straight, wide-leg, relaxed, baggy
+  - **Details**: Rips, distressing, cuffs, pockets, belt loops
+  - **Length**: Full length, cropped, above-knee, knee-length
+  - **Waist level**: High-waisted, mid-rise, low-rise
+  
+  **Footwear (SPECIFIC):**
+  - **Exact type**: "White leather low-top sneakers", "brown leather Chelsea boots", "black canvas high-tops"
+  - **Brand if identifiable**: Nike, Adidas, Converse, Vans, etc.
+  - **Color**: Primary and accent colors
+  - **Condition**: New, scuffed, dirty, well-worn
+  - **Laces**: Color, tied/untied, style
+  - **Socks visible**: Color, height
+  
+  **Accessories (COMPLETE LIST):**
+  - **Watches**: Which wrist, style (digital/analog), color, size
+  - **Jewelry**: Rings (which fingers), necklaces (length, pendant), bracelets, earrings
+  - **Bags**: Type (backpack, messenger, tote, handbag), how carried (shoulder, hand, back), color, brand
+  - **Hats**: Type (baseball cap, beanie, fedora), color, brand/logo, how worn
+  - **Glasses**: Sunglasses or prescription, frame style, color
+  - **Belts**: Visible or not, color, buckle style
+  - **Scarves**: How worn, color, pattern
+  - **Other**: Phone in hand, headphones, keys visible, etc.
+
+- **Body Language & MOVEMENT PHYSICS** (CRITICAL):
+  - **Walking/Movement**:
+    - Speed: "Leisurely pace ~1.5 m/s", "Hurried walk ~2.5 m/s", "Running ~5 m/s"
+    - Gait: Normal stride, short steps, long strides, limping
+    - Arm swing: Natural, hands in pockets, carrying something, restricted
+    - Foot placement: Heel-toe, flat-footed, on toes
+    - **Surface they're on**: "Walking on concrete sidewalk", "Standing in the road on asphalt", "On gravel path", "Grass lawn"
+  - **PHYSICS OF HAIR**:
+    - "Hair flows backward due to forward motion at speed"
+    - "Hair blows to the left from wind/movement"
+    - "Hair bounces with walking rhythm"
+    - "Bangs lift slightly with each step"
+    - "Long hair streams behind on motorcycle at 30 km/h"
+  - **PHYSICS OF CLOTHING**:
+    - "Jacket flaps open from forward motion"
+    - "Loose shirt billows slightly with movement"
+    - "Skirt fabric swings with walking motion"
+    - "Pant legs show slight wrinkles at knee with each step"
+    - "Scarf trails behind from wind/speed"
+  - **Weight & Mass**:
+    - Body weight distribution in stance
+    - How subject carries objects (heavy/light)
+    - Muscle engagement visible
+  - **Posture**:
+    - Upright, slouched, hunched, leaning
+    - Shoulders back/forward
+    - Head tilt angle
+  - **Confidence/Energy**:
+    - Confident stride, hesitant movement, relaxed, tense
+
+- **EXACT POSITION IN FRAME** (CRITICAL):
+  **Frame Position (describe as grid):**
+  - **Horizontal**: "Left third", "Center", "Right edge", "Slightly left of center", "Extreme right 10% of frame"
+  - **Vertical**: "Upper third", "Lower third", "Middle", "Bottom 20% of frame", "Fills frame top to bottom"
+  - **Example**: "Subject positioned in right third horizontally, lower third vertically"
+  
+  **Spatial Distance:**
   - X meters from camera
   - Y meters from left/right edge of frame
-  - Z meters from ground (if elevated)
-  - Facing direction (degrees from camera: 0°=toward, 180°=away, 90°=profile)
+  - Z meters from ground (if elevated/jumping)
+  
+  **Facing Direction:**
+  - Degrees from camera: 0°=facing toward, 90°=right profile, 180°=facing away, 270°=left profile
+  - "Subject faces camera directly (0°)", "Subject shows left profile (270°)"
 
 ### 4. **PHYSICS & MOTION UNDERSTANDING**
 Analyze PHYSICAL BEHAVIORS:
@@ -130,15 +202,32 @@ Analyze PHYSICAL BEHAVIORS:
 - **Momentum & Inertia**:
   - "Hair sways forward as subject stops walking, indicating previous forward momentum"
   - "Vehicle appears heavy (commercial van) based on suspension sag and slower acceleration"
+  - "Loose clothing continues motion after subject stops (fabric lag)"
+- **SHADOWS & LIGHT INTERACTION** (CRITICAL):
+  - **Shadow Direction**: "Subject casts shadow to the left, indicating light source from right"
+  - **Shadow Length**: "Shadow extends 2 meters behind subject, indicating low sun angle"
+  - **Shadow Hardness**: "Hard-edged shadow from direct sunlight", "Soft diffused shadow from overcast sky"
+  - **Multiple Shadows**: "Subject has two shadows - one from streetlight (cool blue) and one from storefront (warm orange)"
+  - **Shadow on Objects**: "Van casts long shadow across subject's path"
+  - **Self-Shadowing**: "Subject's face in shadow from hat brim", "Neck shadowed by chin"
+  - **Shadow Movement**: "Shadows move with subject maintaining consistent angle"
+- **REFLECTIONS**:
+  - "Subject reflected in storefront window"
+  - "Vehicle chrome reflects surrounding buildings"
+  - "Wet pavement reflects neon lights"
 - **Depth Perception Cues**:
   - "Parallax effect: Foreground moves 3x faster than background relative to camera"
   - "Atmospheric perspective: Background 20% hazier than foreground"
+  - "Size diminishment: Background people appear 1/3 size of foreground subjects"
 - **Motion Blur Characteristics**:
   - "Passing vehicle shows horizontal motion blur of approximately 5 pixels"
   - "Subject's arms show slight blur during walking motion"
+  - "Wheels appear blurred indicating rotation"
+  - "Background shows motion blur from camera tracking"
 - **Weight & Mass Indicators**:
   - "Subject's gait suggests average weight, normal stride length"
   - "Heavy object: requires two-handed carry, arms slightly strained"
+  - "Subject's feet impact surface with visible weight transfer"
 
 ### 5. **COMPLETE PHYSICAL WORLD INVENTORY**
 Document EVERYTHING visible:
@@ -282,26 +371,57 @@ List EVERYTHING visible:
 - **Vegetation**: Types of plants, trees, greenery
 - **Infrastructure**: Roads, sidewalks, utility poles, wires, drainage
 
-#### D. Human Subjects (Exhaustive)
-For EACH person visible:
-- **Count**: Total number of people in frame
-- **Demographics**: Apparent age range, gender presentation
-- **Position**: Exact location in frame (foreground, midground, background, left/right/center)
+#### D. Human Subjects (Exhaustive - DOCUMENT EVERY SINGLE PERSON)
+**CRITICAL: List EVERY person visible in the frame, including:**
+- Main subjects in focus
+- Background people walking by
+- People partially visible at frame edges
+- People in vehicles
+- People in windows
+- People in reflections
+- Even blurry/out-of-focus people
+
+For EACH person (use the ultra-detailed format from section 3):
+- **Person ID**: "Person 1 (main subject)", "Person 2 (background left)", etc.
+- **Count & Group**: "1 person alone", "2 people together", "Group of 4"
+- **Demographics**: Age range (use specific categories), gender presentation, ethnicity
+- **EXACT Position in Frame**:
+  - **Horizontal**: Left third, center, right third, edge, etc.
+  - **Vertical**: Upper third, middle, lower third, etc.
+  - **Depth**: Foreground (0-3m), midground (3-10m), background (10m+)
+  - **Surface**: "Standing on sidewalk", "Walking in street", "On motorcycle"
+  - **Distance from camera**: Approximate meters
 - **Physical Description**:
-  - Height/build (relative to surroundings)
-  - Hair: Style, length, color
-  - Skin tone
-  - Facial features (if visible)
-  - Body language and posture
-- **Clothing**: 
-  - Each garment item described
-  - Colors, patterns, textures
-  - Brands if visible
-  - Accessories (watches, jewelry, bags, hats)
-  - Footwear
-  - Condition (new, worn, vintage)
-- **Actions**: Specific movements and activities
-- **Interactions**: With other people, objects, or environment
+  - Height/build relative to surroundings ("appears 1.7m tall based on door frame")
+  - Hair: Complete description (style, length, color, texture)
+  - Skin tone: Accurate description
+  - Facial features (if visible): Glasses, facial hair, expression
+  - Distinguishing features: Tattoos, scars, unique characteristics
+- **COMPLETE CLOTHING INVENTORY** (use ultra-detailed format from section 3):
+  - Upper body: Every layer, color, pattern, fit, material, brand
+  - Lower body: Exact item, color, fit, details
+  - Footwear: Specific type, brand, color, condition
+  - Accessories: ALL items (watch, jewelry, bags, hat, glasses, phone, etc.)
+  - **Clothing Physics**: How clothing moves/flows with their movement
+- **Body Language & Posture**:
+  - Stance, weight distribution
+  - Arm position, hand position
+  - Head angle, gaze direction
+  - Energy level (relaxed, hurried, tense)
+- **Movement & Actions**: 
+  - What they're doing: "Walking forward", "Standing still", "Sitting on scooter"
+  - Movement speed and style
+  - Where they're going: "Walking toward camera", "Crossing street left to right"
+  - **Surface interaction**: "Feet on concrete sidewalk", "Sitting on motorcycle seat"
+- **MOVEMENT PHYSICS**:
+  - **Hair movement**: Direction, speed, how it responds to motion/wind
+  - **Clothing movement**: How garments flow, billow, or move with their motion
+  - **Shadow**: Where their shadow falls, length, direction
+- **Interactions**: 
+  - With other people: "Talking to Person 2", "Walking alongside Person 3"
+  - With objects: "Carrying bag", "Touching wall", "Holding phone"
+  - With environment: "Looking at storefront", "Avoiding obstacle"
+- **Visibility**: "Fully visible", "Partially obscured by van", "Only upper body visible", "Visible in background but out of focus"
 
 #### E. Cinematographic Technical Details
 - **Shot Type**: Wide/establishing, medium, close-up, extreme close-up, two-shot, etc.
@@ -462,29 +582,74 @@ Provide your analysis in a structured JSON format that matches this schema:
 
 ## CRITICAL GUIDELINES FOR 99% RECREATION ACCURACY
 
-1. **CAMERA POSITIONING IS MANDATORY**: Every shot MUST include camera_position, camera_angle_degrees, camera_distance_meters, camera_height_meters. This is NOT optional.
+1. **CAMERA POSITIONING IS MANDATORY**: Every shot MUST include camera_position, camera_angle_degrees, camera_distance_meters, camera_height_meters. This is NOT optional. The AI needs to know EXACTLY where the camera is positioned relative to the subject.
 
-2. **SPATIAL RELATIONSHIPS ARE REQUIRED**: Every shot MUST include subject_position_frame and spatial_relationships describing the 3D space.
+2. **SPATIAL RELATIONSHIPS ARE REQUIRED**: Every shot MUST include subject_position_frame and spatial_relationships describing the 3D space. Where is the subject in the frame? Bottom? Top? Left? Right? Center?
 
-3. **COMPLETE HUMAN DEMOGRAPHICS**: For EVERY person visible, specify:
+3. **COMPLETE HUMAN DEMOGRAPHICS FOR EVERY PERSON**: Document EVERY person visible, not just main subjects:
+   - List ALL people including background, partially visible, in vehicles, in reflections
    - Exact ethnicity (East Asian, Southeast Asian, etc.)
    - Precise age group (use the specific ranges provided)
-   - Complete clothing inventory
+   - **ULTRA-DETAILED CLOTHING**: Every garment, every layer, every accessory, colors, patterns, fit, brands
+   - Exact position in frame (horizontal and vertical placement)
    - Exact position in meters from camera
+   - What surface they're on (sidewalk, road, grass, etc.)
 
-4. **READ ALL TEXT**: Attempt to read EVERY visible sign, even partial text. This is critical for recreation.
+4. **PHYSICS OF MOVEMENT IS CRITICAL**:
+   - **Hair**: How does hair move with motion? Direction, speed, wind effects
+   - **Clothing**: How do garments flow, billow, or move with the subject's motion?
+   - **Shadows**: Where do shadows fall? What direction? How long? How hard/soft?
+   - **Reflections**: Any reflections visible?
+   - Motion speeds in m/s or km/h
 
-5. **PHYSICS & MOTION**: Describe motion speed in meters/second or km/h. Describe weight, momentum, gait characteristics.
+5. **BUILDINGS & OBJECTS POSITIONING**: For EVERY building and object visible:
+   - Exact position relative to camera and subject
+   - Position in frame (left side, right background, center, etc.)
+   - Distance from camera in meters
+   - Relationship to subjects ("Building 10 meters behind subject on left")
 
-6. **BE EXHAUSTIVE**: The AI needs EVERY detail to recreate accurately. More detail = better recreation. Do NOT summarize or skip elements.
+6. **READ ALL TEXT**: Attempt to read EVERY visible sign, even partial/blurry text. Even if you can only see "...chen N..." - document it! This is critical for recreation.
 
-7. **USE PROFESSIONAL TERMINOLOGY**: Use correct cinematography, lighting, and color science terms from the standards provided.
+7. **SURFACE AWARENESS**: Always specify what surface subjects are on:
+   - "Walking on concrete sidewalk"
+   - "Standing in the road on asphalt"
+   - "Sitting on motorcycle seat"
+   - "On gravel path"
 
-8. **MEASUREMENTS OVER DESCRIPTIONS**: "3 meters from camera" is better than "close to camera". "30-degree angle" is better than "slight angle".
+8. **DOCUMENT EVERYTHING VISIBLE**: The AI needs EVERY detail:
+   - Every person (including background, partial, out-of-focus)
+   - Every object (foreground and background)
+   - Every building and architectural element
+   - Every sign and text element
+   - Every vehicle
+   - All shadows, reflections, lighting effects
+   - Do NOT summarize or skip elements - be exhaustive
 
-9. **CONSISTENCY**: Maintain exact names and descriptions for recurring elements across all scenes.
+9. **USE PROFESSIONAL TERMINOLOGY**: Use correct cinematography, lighting, and color science terms from the standards provided.
 
-10. **NO ASSUMPTIONS**: If you can't determine something, state "not visible" or "indeterminable" rather than guessing.
+10. **MEASUREMENTS OVER DESCRIPTIONS**: 
+    - "3 meters from camera" NOT "close to camera"
+    - "30-degree downward angle" NOT "high angle shot"
+    - "Subject in right third of frame, lower third vertically" NOT "subject on right"
+    - "1.5 m/s walking speed" NOT "slow walk"
+
+11. **CONSISTENCY**: Maintain exact names and descriptions for recurring elements across all scenes.
+
+12. **NO ASSUMPTIONS**: If you can't determine something, state "not visible" or "indeterminable" rather than guessing.
+
+---
+
+## REMEMBER: THE GOAL IS 99% RECREATION ACCURACY
+
+An AI reading your analysis should be able to recreate the video almost perfectly by understanding:
+- **WHERE**: Exact camera position, angle, distance
+- **WHO**: Every person with complete appearance details
+- **WHAT**: Every object, building, sign, vehicle visible
+- **HOW**: Physics of movement (hair, clothing, shadows)
+- **WHERE IN FRAME**: Exact positioning (left/right, top/bottom, foreground/background)
+- **ON WHAT**: What surface are subjects on (sidewalk, road, etc.)
+
+MORE DETAIL = BETTER RECREATION. Be exhaustive, not summary.
 
 ---
 

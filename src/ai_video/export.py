@@ -237,13 +237,36 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path) -> None:
                         ""
                     ])
         
-        # Build comprehensive AI generation prompt
+        # Build comprehensive AI generation prompts
         md_lines.extend([
-            "### 🤖 AI Generation Prompts",
-            "",
-            "#### Text-to-Image Prompt",
-            "```"
+            "### 🤖 AI Generation Prompts (Kling 2.1 Pro Compatible)",
+            ""
         ])
+        
+        # Check if this scene should use first+last frame approach
+        use_first_last = False
+        if scene.shots and len(scene.shots) > 0:
+            shot = scene.shots[0]
+            # Simple heuristic: use first+last for longer scenes with movement
+            if scene.duration >= 2.0:
+                action = shot.get('action', '').lower() if isinstance(shot, dict) else getattr(shot, 'action', '').lower()
+                movement_keywords = ['walk', 'move', 'turn', 'ride', 'approach', 'exit', 'enter']
+                use_first_last = any(kw in action for kw in movement_keywords) or scene.duration >= 4.0
+        
+        if use_first_last and scene.duration >= 2.0:
+            md_lines.extend([
+                "**💡 Recommendation: Use First+Last Frame Approach**",
+                "",
+                f"This scene ({scene.duration:.1f}s with significant movement/transformation) will benefit from Kling 2.1 Pro's first+last frame feature.",
+                "",
+                "#### First Frame Prompt (Text-to-Image)",
+                "```"
+            ])
+        else:
+            md_lines.extend([
+                "#### Text-to-Image Prompt",
+                "```"
+            ])
         
         # Construct ultra-detailed prompt
         prompt_parts = []
@@ -286,40 +309,100 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path) -> None:
         md_lines.extend([
             full_prompt,
             "```",
-            "",
+            ""
         ])
         
-        # Video prompt
+        # If using first+last frame, add last frame prompt
+        if use_first_last and scene.duration >= 2.0:
+            # Generate last frame prompt (modify subject for end state)
+            last_frame_parts = []
+            
+            # Modify description for end state
+            if scene.description:
+                desc = scene.description
+                # Add "at end of movement" or "having completed action"
+                if scene.shots and scene.shots[0].action:
+                    action = scene.shots[0].action.lower()
+                    if any(kw in action for kw in ['walk', 'move', 'approach']):
+                        desc += " having completed movement"
+                    elif 'turn' in action:
+                        desc += " having turned"
+                    else:
+                        desc += " at end of action"
+                last_frame_parts.append(desc)
+            
+            # Keep same location, lighting, style
+            last_frame_parts.append(f"Location: {scene.location}")
+            if scene.shots and scene.shots[0].camera_position:
+                # Extract end position if mentioned
+                cam_pos = scene.shots[0].camera_position
+                if "to" in cam_pos.lower():
+                    last_frame_parts.append(f"Camera: {cam_pos.split('to')[-1].strip() if 'to' in cam_pos else cam_pos}")
+            if scene.lighting:
+                last_frame_parts.append(f"Lighting: {scene.lighting}")
+            if report.film_stock_look:
+                last_frame_parts.append(f"Film Stock: {report.film_stock_look}")
+            if report.overall_style:
+                last_frame_parts.append(f"Style: {report.overall_style}")
+            
+            last_frame_prompt = ". ".join(last_frame_parts) + "."
+            
+            md_lines.extend([
+                "",
+                "#### Last Frame Prompt (Text-to-Image)",
+                "```",
+                last_frame_prompt,
+                "```",
+                "",
+                "**Workflow:** Generate both frames with text-to-image model (e.g., SeaArt, Midjourney, DALL-E), then use both as input to Kling 2.1 Pro for video generation.",
+                ""
+            ])
+        else:
+            md_lines.append("")
+        
+        # Video prompt (or note about first+last frame)
+        if use_first_last:
+            md_lines.extend([
+                "#### Video Generation (Kling 2.1 Pro)",
+                "Use first+last frame mode with the two generated images above.",
+                ""
+            ])
+        else:
+            md_lines.extend([
+                "#### Image-to-Video Prompt",
+                "```"
+            ])
+        
+        # Only generate standard video prompt if NOT using first+last frame
+        if not use_first_last:
+            video_prompt_parts = []
+            
+            if scene.description:
+                video_prompt_parts.append(scene.description)
+            
+            # Camera movement
+            if scene.shots and scene.shots[0].camera_movement:
+                video_prompt_parts.append(f"Camera movement: {scene.shots[0].camera_movement}")
+            if scene.shots and scene.shots[0].camera_movement_trajectory:
+                video_prompt_parts.append(f"Movement: {scene.shots[0].camera_movement_trajectory}")
+            
+            # Motion physics
+            if scene.shots and scene.shots[0].motion_physics:
+                video_prompt_parts.append(f"Motion: {scene.shots[0].motion_physics}")
+            
+            # Film look
+            if report.film_stock_look:
+                video_prompt_parts.append(f"Film look: {report.film_stock_look}")
+            
+            video_prompt = ". ".join(video_prompt_parts) + "."
+            
+            md_lines.extend([
+                video_prompt,
+                "```",
+                ""
+            ])
+        
         md_lines.extend([
-            "#### Image-to-Video Prompt",
-            "```"
-        ])
-        
-        video_prompt_parts = []
-        
-        if scene.description:
-            video_prompt_parts.append(scene.description)
-        
-        # Camera movement
-        if scene.shots and scene.shots[0].camera_movement:
-            video_prompt_parts.append(f"Camera movement: {scene.shots[0].camera_movement}")
-        if scene.shots and scene.shots[0].camera_movement_trajectory:
-            video_prompt_parts.append(f"Movement: {scene.shots[0].camera_movement_trajectory}")
-        
-        # Motion physics
-        if scene.shots and scene.shots[0].motion_physics:
-            video_prompt_parts.append(f"Motion: {scene.shots[0].motion_physics}")
-        
-        # Film look
-        if report.film_stock_look:
-            video_prompt_parts.append(f"Film look: {report.film_stock_look}")
-        
-        video_prompt = ". ".join(video_prompt_parts) + "."
-        
-        md_lines.extend([
-            video_prompt,
-            "```",
-            "",
             "---",
             ""
         ])

@@ -189,6 +189,12 @@ class PromptSpec(BaseModel):
     negative_prompt: Optional[str] = None
     reference_images: list[str] = Field(default_factory=list, description="Paths to reference images")
     
+    # Kling 2.1 Pro first+last frame support
+    use_first_last_frame: bool = Field(default=False, description="Whether this scene should use first+last frame approach")
+    first_frame_prompt: Optional[str] = Field(default=None, description="Prompt for generating first frame image (T2I)")
+    last_frame_prompt: Optional[str] = Field(default=None, description="Prompt for generating last frame image (T2I)")
+    first_last_frame_reasoning: Optional[str] = Field(default=None, description="Explanation for why first+last frame is recommended")
+    
     class Config:
         json_schema_extra = {
             "example": {

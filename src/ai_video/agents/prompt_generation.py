@@ -231,6 +231,17 @@ class PromptGenerationAgent:
         # if self.config.max_prompt_length and len(prompt_text) > self.config.max_prompt_length:
         #     prompt_text = prompt_text[:self.config.max_prompt_length - 3] + "..."
         
+        # Determine if first+last frame approach is beneficial
+        use_first_last = self._should_use_first_last_frame(scene, shot)
+        first_frame_prompt = None
+        last_frame_prompt = None
+        reasoning = None
+        
+        if use_first_last:
+            first_frame_prompt, last_frame_prompt, reasoning = self._generate_first_last_frame_prompts(
+                scene, shot, report
+            )
+        
         return PromptSpec(
             prompt_type=PromptType.IMAGE_TO_VIDEO,
             text=prompt_text,
@@ -239,7 +250,11 @@ class PromptGenerationAgent:
             scene=scene_desc,
             camera=camera if self.config.include_camera_details else None,
             lighting=lighting if self.config.include_lighting else None,
-            style=style if self.config.include_style else None
+            style=style if self.config.include_style else None,
+            use_first_last_frame=use_first_last,
+            first_frame_prompt=first_frame_prompt,
+            last_frame_prompt=last_frame_prompt,
+            first_last_frame_reasoning=reasoning
         )
     
     def _generate_scene_image_prompt(self, scene: Scene, report: VideoReport) -> PromptSpec:
@@ -507,6 +522,115 @@ class PromptGenerationAgent:
             return textures
         
         return None
+    
+    def _should_use_first_last_frame(self, scene: Scene, shot: Shot) -> bool:
+        """
+        Determine if this scene/shot should use Kling 2.1 Pro's first+last frame approach.
+        
+        Returns True if first+last frame is recommended based on:
+        - Scene duration (longer scenes benefit more)
+        - Amount of movement/transformation
+        - Complexity of action
+        - Clear beginning and end states
+        """
+        # Don't use for very short scenes (less than 2 seconds)
+        if scene.duration < 2.0:
+            return False
+        
+        # Check for significant movement indicators in action description
+        action = shot.action.lower() if shot.action else ""
+        description = shot.description.lower() if shot.description else ""
+        
+        # Keywords that suggest significant transformation/movement
+        movement_keywords = [
+            'walk', 'run', 'move', 'approach', 'exit', 'enter', 'turn',
+            'lean', 'ride', 'drive', 'fly', 'jump', 'fall', 'rise',
+            'transform', 'change', 'transition', 'travel', 'cross'
+        ]
+        
+        # Check if scene has significant movement
+        has_movement = any(keyword in action or keyword in description for keyword in movement_keywords)
+        
+        # Check camera movement (tracking, dolly, crane, etc. benefit from first+last)
+        camera_movement = shot.camera_movement.lower() if shot.camera_movement else ""
+        has_camera_movement = any(mv in camera_movement for mv in ['track', 'dolly', 'crane', 'follow', 'orbit'])
+        
+        # Use first+last frame if:
+        # 1. Scene is longer than 2 seconds AND has movement/transformation
+        # 2. OR scene is longer than 4 seconds (even without obvious movement, provides better control)
+        # 3. OR has significant camera movement
+        
+        if scene.duration >= 4.0:
+            return True
+        
+        if scene.duration >= 2.0 and (has_movement or has_camera_movement):
+            return True
+        
+        return False
+    
+    def _generate_first_last_frame_prompts(self, scene: Scene, shot: Shot, report: VideoReport) -> tuple[str, str, str]:
+        """
+        Generate first frame and last frame prompts for Kling 2.1 Pro.
+        
+        Returns:
+            tuple: (first_frame_prompt, last_frame_prompt, reasoning)
+        """
+        # Extract base elements
+        subject = self._extract_subject(shot, scene)
+        scene_desc = self._build_detailed_scene_description(scene, report)
+        lighting = self._build_detailed_lighting(scene, report)
+        film_stock = self._extract_film_stock(scene, report)
+        style = self._build_comprehensive_style(scene, report)
+        
+        # Build base prompt elements
+        base_elements = []
+        base_elements.append(f"in {scene_desc}")
+        if lighting:
+            base_elements.append(f"Lighting: {lighting}")
+        if film_stock:
+            base_elements.append(f"Film: {film_stock}")
+        if style:
+            base_elements.append(f"Style: {style}")
+        
+        base_prompt = ". ".join(base_elements)
+        
+        # Analyze action to determine first vs last frame states
+        action = shot.action if shot.action else ""
+        
+        # FIRST FRAME: Beginning state
+        # Extract starting position/state from camera position or spatial relationships
+        first_frame_subject = subject
+        if shot.camera_position and "starts at" in shot.camera_position.lower():
+            # Extract starting position info
+            first_frame_subject += " at starting position"
+        
+        first_frame_prompt = f"{first_frame_subject}. {base_prompt}. Beginning of action."
+        
+        # LAST FRAME: Ending state  
+        # Try to infer end state from action description
+        last_frame_subject = subject
+        if "toward" in action.lower():
+            last_frame_subject += " having moved closer"
+        elif "away" in action.lower():
+            last_frame_subject += " having moved away"
+        elif "turn" in action.lower():
+            last_frame_subject += " turned"
+        elif "exit" in action.lower() or "leave" in action.lower():
+            last_frame_subject += " at exit point"
+        elif "enter" in action.lower():
+            last_frame_subject += " having entered"
+        else:
+            last_frame_subject += " at end of movement"
+        
+        last_frame_prompt = f"{last_frame_subject}. {base_prompt}. End of action."
+        
+        # Generate reasoning
+        duration_reason = f"Scene duration is {scene.duration:.1f}s"
+        movement_reason = "Scene has significant movement/transformation" if any(kw in action.lower() for kw in ['walk', 'move', 'turn', 'ride']) else "Scene has camera movement"
+        
+        reasoning = f"{duration_reason}, {movement_reason}. First+last frame approach provides better control over start and end states for Kling 2.1 Pro video generation."
+        
+        return (first_frame_prompt, last_frame_prompt, reasoning)
     
     def _build_camera_description(self, shot: Shot) -> str:
         """Build camera description for still image."""

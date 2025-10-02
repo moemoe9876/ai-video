@@ -1,22 +1,23 @@
 """Export utilities for generating consolidated prompt files."""
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
-from .models import VideoReport, Scene, Shot
+from .models import VideoReport, Scene, Shot, PromptBundle
 from .logging import get_logger
 
 logger = get_logger(__name__)
 
 
-def generate_detailed_markdown(report: VideoReport, output_path: Path) -> None:
+def generate_detailed_markdown(report: VideoReport, output_path: Path, bundles: Optional[List[PromptBundle]] = None) -> None:
     """
     Generate ultra-detailed consolidated markdown file with all scene information.
     
     Args:
         report: VideoReport containing all analysis data
         output_path: Path where markdown file should be saved
+        bundles: Optional list of PromptBundles with first+last frame info
     """
     video_id = report.video_id
     
@@ -249,20 +250,41 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path) -> None:
         ])
         
         # Check if this scene should use first+last frame approach
+        # Use data from the prompt bundle if available, otherwise fallback to heuristic
         use_first_last = False
-        if scene.shots and len(scene.shots) > 0:
+        first_frame_prompt = None
+        last_frame_prompt = None
+        reasoning = None
+        
+        if bundles and (scene_idx - 1) < len(bundles):
+            bundle = bundles[scene_idx - 1]
+            if bundle.video_prompts:
+                video_prompt = bundle.video_prompts[0]
+                use_first_last = video_prompt.use_first_last_frame or False
+                first_frame_prompt = video_prompt.first_frame_prompt
+                last_frame_prompt = video_prompt.last_frame_prompt
+                reasoning = video_prompt.first_last_frame_reasoning
+        
+        # Fallback heuristic if no bundle data available
+        if bundles is None and scene.shots and len(scene.shots) > 0:
             shot = scene.shots[0]
-            # Simple heuristic: use first+last for longer scenes with movement
             if scene.duration >= 2.0:
                 action = shot.get('action', '').lower() if isinstance(shot, dict) else getattr(shot, 'action', '').lower()
+                camera_movement = shot.get('camera_movement', '').lower() if isinstance(shot, dict) else getattr(shot, 'camera_movement', '').lower()
                 movement_keywords = ['walk', 'move', 'turn', 'ride', 'approach', 'exit', 'enter']
-                use_first_last = any(kw in action for kw in movement_keywords) or scene.duration >= 4.0
+                camera_keywords = ['track', 'dolly', 'crane', 'follow', 'orbit']
+                has_movement = any(kw in action for kw in movement_keywords)
+                has_camera_movement = any(kw in camera_movement for kw in camera_keywords)
+                use_first_last = has_movement or has_camera_movement or scene.duration >= 4.0
         
         if use_first_last and scene.duration >= 2.0:
+            # Show recommendation with reasoning if available
+            recommendation_text = reasoning if reasoning else f"This scene ({scene.duration:.1f}s with significant movement/transformation) will benefit from Kling 2.1 Pro's first+last frame feature."
+            
             md_lines.extend([
                 "**💡 Recommendation: Use First+Last Frame Approach**",
                 "",
-                f"This scene ({scene.duration:.1f}s with significant movement/transformation) will benefit from Kling 2.1 Pro's first+last frame feature.",
+                recommendation_text,
                 "",
                 "#### First Frame Prompt (Text-to-Image)",
                 "```"
@@ -273,43 +295,48 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path) -> None:
                 "```"
             ])
         
-        # Construct ultra-detailed prompt
-        prompt_parts = []
-        
-        # Scene and description
-        if scene.description:
-            prompt_parts.append(scene.description)
-        
-        # Location context
-        prompt_parts.append(f"Location: {scene.location}")
-        
-        # Camera details from first shot
-        if scene.shots:
-            shot = scene.shots[0]
-            if shot.shot_type:
-                prompt_parts.append(f"Shot: {shot.shot_type}")
-            if shot.camera_position:
-                prompt_parts.append(f"Camera: {shot.camera_position}")
-            if shot.spatial_relationships:
-                prompt_parts.append(f"Spatial: {shot.spatial_relationships}")
-        
-        # Lighting
-        if scene.lighting:
-            prompt_parts.append(f"Lighting: {scene.lighting}")
-        
-        # Film stock
-        if report.film_stock_look:
-            prompt_parts.append(f"Film Stock: {report.film_stock_look}")
-        
-        # Style
-        if report.overall_style:
-            prompt_parts.append(f"Style: {report.overall_style}")
-        
-        # Mood
-        if scene.mood:
-            prompt_parts.append(f"Mood: {scene.mood}")
-        
-        full_prompt = ". ".join(prompt_parts) + "."
+        # Use pre-generated prompt from bundle if available, otherwise construct it
+        if use_first_last and first_frame_prompt:
+            # Use the intelligently generated first frame prompt
+            full_prompt = first_frame_prompt
+        else:
+            # Fallback: Construct ultra-detailed prompt
+            prompt_parts = []
+            
+            # Scene and description
+            if scene.description:
+                prompt_parts.append(scene.description)
+            
+            # Location context
+            prompt_parts.append(f"Location: {scene.location}")
+            
+            # Camera details from first shot
+            if scene.shots:
+                shot = scene.shots[0]
+                if shot.shot_type:
+                    prompt_parts.append(f"Shot: {shot.shot_type}")
+                if shot.camera_position:
+                    prompt_parts.append(f"Camera: {shot.camera_position}")
+                if shot.spatial_relationships:
+                    prompt_parts.append(f"Spatial: {shot.spatial_relationships}")
+            
+            # Lighting
+            if scene.lighting:
+                prompt_parts.append(f"Lighting: {scene.lighting}")
+            
+            # Film stock
+            if report.film_stock_look:
+                prompt_parts.append(f"Film Stock: {report.film_stock_look}")
+            
+            # Style
+            if report.overall_style:
+                prompt_parts.append(f"Style: {report.overall_style}")
+            
+            # Mood
+            if scene.mood:
+                prompt_parts.append(f"Mood: {scene.mood}")
+            
+            full_prompt = ". ".join(prompt_parts) + "."
         
         md_lines.extend([
             full_prompt,
@@ -319,44 +346,48 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path) -> None:
         
         # If using first+last frame, add last frame prompt
         if use_first_last and scene.duration >= 2.0:
-            # Generate last frame prompt (modify subject for end state)
-            last_frame_parts = []
-            
-            # Modify description for end state
-            if scene.description:
-                desc = scene.description
-                # Add "at end of movement" or "having completed action"
-                if scene.shots and scene.shots[0].action:
-                    action = scene.shots[0].action.lower()
-                    if any(kw in action for kw in ['walk', 'move', 'approach']):
-                        desc += " having completed movement"
-                    elif 'turn' in action:
-                        desc += " having turned"
-                    else:
-                        desc += " at end of action"
-                last_frame_parts.append(desc)
-            
-            # Keep same location, lighting, style
-            last_frame_parts.append(f"Location: {scene.location}")
-            if scene.shots and scene.shots[0].camera_position:
-                # Extract end position if mentioned
-                cam_pos = scene.shots[0].camera_position
-                if "to" in cam_pos.lower():
-                    last_frame_parts.append(f"Camera: {cam_pos.split('to')[-1].strip() if 'to' in cam_pos else cam_pos}")
-            if scene.lighting:
-                last_frame_parts.append(f"Lighting: {scene.lighting}")
-            if report.film_stock_look:
-                last_frame_parts.append(f"Film Stock: {report.film_stock_look}")
-            if report.overall_style:
-                last_frame_parts.append(f"Style: {report.overall_style}")
-            
-            last_frame_prompt = ". ".join(last_frame_parts) + "."
+            # Use pre-generated last frame prompt if available, otherwise construct it
+            if last_frame_prompt:
+                final_last_prompt = last_frame_prompt
+            else:
+                # Fallback: Generate last frame prompt (modify subject for end state)
+                last_frame_parts = []
+                
+                # Modify description for end state
+                if scene.description:
+                    desc = scene.description
+                    # Add "at end of movement" or "having completed action"
+                    if scene.shots and scene.shots[0].action:
+                        action = scene.shots[0].action.lower()
+                        if any(kw in action for kw in ['walk', 'move', 'approach']):
+                            desc += " having completed movement"
+                        elif 'turn' in action:
+                            desc += " having turned"
+                        else:
+                            desc += " at end of action"
+                    last_frame_parts.append(desc)
+                
+                # Keep same location, lighting, style
+                last_frame_parts.append(f"Location: {scene.location}")
+                if scene.shots and scene.shots[0].camera_position:
+                    # Extract end position if mentioned
+                    cam_pos = scene.shots[0].camera_position
+                    if "to" in cam_pos.lower():
+                        last_frame_parts.append(f"Camera: {cam_pos.split('to')[-1].strip() if 'to' in cam_pos else cam_pos}")
+                if scene.lighting:
+                    last_frame_parts.append(f"Lighting: {scene.lighting}")
+                if report.film_stock_look:
+                    last_frame_parts.append(f"Film Stock: {report.film_stock_look}")
+                if report.overall_style:
+                    last_frame_parts.append(f"Style: {report.overall_style}")
+                
+                final_last_prompt = ". ".join(last_frame_parts) + "."
             
             md_lines.extend([
                 "",
                 "#### Last Frame Prompt (Text-to-Image)",
                 "```",
-                last_frame_prompt,
+                final_last_prompt,
                 "```",
                 "",
                 "**Workflow:** Generate both frames with text-to-image model (e.g., SeaArt, Midjourney, DALL-E), then use both as input to Kling 2.1 Pro for video generation.",

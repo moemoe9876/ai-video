@@ -102,7 +102,7 @@ def make_prompts(
         prompts_dir = path_builder.get_video_prompts_dir(video_report.video_id)
         markdown_path = prompts_dir / "prompts_detailed.md"
         console.print(f"[bold cyan]Generating detailed markdown...[/bold cyan]")
-        generate_detailed_markdown(video_report, markdown_path)
+        generate_detailed_markdown(video_report, markdown_path, bundles=bundles)
         
         console.print(f"\n[bold green]✓ Prompt generation complete![/bold green]")
         console.print(f"[cyan]Video ID:[/cyan] {video_report.video_id}")

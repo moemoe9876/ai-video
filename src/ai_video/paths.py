@@ -25,6 +25,10 @@ class PathBuilder:
         scene_dir = self.prompts_dir / video_id
         scene_dir.mkdir(parents=True, exist_ok=True)
         return scene_dir / f"scene_{scene_index:03d}.json"
+
+    def get_camera_analysis_path(self, video_id: str) -> Path:
+        """Get path for persisted camera analysis."""
+        return self.reports_dir / f"{video_id}_camera_analysis.json"
     
     def get_prompts_export_path(self, video_id: str, format: str = "md") -> Path:
         """Get path for exported prompts."""

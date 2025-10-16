@@ -4,6 +4,8 @@ Generate prompts following this structure:
 
 **Prompt = Subject + Action + Scene + Camera + Lighting + Style**
 
+Focus on a single, continuous moment. Never combine multiple scenes, locations, or time periods into one prompt.
+
 ## Components
 
 ### Subject
@@ -11,6 +13,7 @@ Generate prompts following this structure:
 - Detailed physical appearance
 - Clothing, accessories, expressions
 - Body posture and positioning
+- Keep the subject count tight (one hero subject or a clearly defined small group)
 
 ### Action
 - What is the subject doing?
@@ -22,12 +25,14 @@ Generate prompts following this structure:
 - Foreground and background elements
 - Environmental details
 - Spatial relationships
+- All elements must plausibly coexist in the same moment
 
 ### Camera
 - Shot type (wide, medium, close-up)
 - Camera angle (eye-level, low angle, high angle)
 - Framing and composition
 - Distance from subject
+- Avoid referencing multiple shots or cuts; describe one camera setup
 
 ### Lighting
 - Type of light (natural, artificial)
@@ -42,6 +47,7 @@ Generate prompts following this structure:
 - Film stock or look (if applicable)
 - Mood and atmosphere
 - Reference styles if helpful
+- If no scene-specific style is provided, default to cinematic realism
 
 ## Example Prompts
 
@@ -65,10 +71,11 @@ Athletic man in sports gear running along a coastal path, ocean visible in backg
 1. **Be Specific**: Use concrete details rather than vague descriptions
 2. **Natural Language**: Write in clear, readable sentences
 3. **Avoid Numbers**: Don't specify exact measurements or counts
-4. **Mood Over Technical**: Prioritize atmosphere and feeling
-5. **Consistency**: Maintain consistent style across related prompts
-6. **Length**: Aim for 1-3 sentences, 50-150 words
-7. **Negative Prompts**: Optionally specify what to avoid (blur, distortion, etc.)
+4. **Single Shot**: Never describe montages, jump cuts, or multiple locations
+5. **Mood Over Technical**: Prioritize atmosphere and feeling
+6. **Consistency**: Maintain consistent style across related prompts
+7. **Length**: Aim for 1-3 sentences, 50-150 words
+8. **Negative Prompts**: Optionally specify what to avoid (blur, distortion, etc.)
 
 ## Negative Prompt Template
 

@@ -88,8 +88,36 @@ class Shot(BaseModel):
                 "camera_movement": "tracking",
                 "camera_description": "Camera follows woman from behind",
                 "entities": []
-            }
         }
+        }
+
+class LightingStyleBreakdown(BaseModel):
+    """Structured lighting profile inferred for a shot or scene."""
+
+    key_light: Optional[str] = Field(default=None, description="Primary key light description")
+    fill_light: Optional[str] = Field(default=None, description="Fill light description")
+    practical_lights: Optional[str] = Field(default=None, description="Visible practical lighting sources")
+    mood: Optional[str] = Field(default=None, description="Lighting mood or ambience")
+
+
+class CameraShotBreakdown(BaseModel):
+    """Derived cinematography guidance for recreating a shot."""
+
+    scene_id: str = Field(description="Scene-shot identifier (scene index + shot index)")
+    camera_shot_type: Optional[str] = Field(default=None, description="Shot classification (e.g., Medium Shot)")
+    camera_angle: Optional[str] = Field(default=None, description="Camera angle (high, low, dutch, etc.)")
+    camera_height: Optional[str] = Field(default=None, description="Camera height guidance")
+    camera_distance: Optional[str] = Field(default=None, description="Camera-to-subject distance guidance")
+    framing_style: Optional[str] = Field(default=None, description="Framing or composition approach")
+    lens_type_estimate: Optional[str] = Field(default=None, description="Lens choice or focal length estimate")
+    depth_of_field: Optional[str] = Field(default=None, description="Depth of field guidance")
+    lighting_style: LightingStyleBreakdown = Field(description="Structured lighting strategy for the shot")
+    composition_notes: Optional[str] = Field(default=None, description="Key composition notes")
+    set_design_notes: Optional[str] = Field(default=None, description="Relevant set or environment notes")
+    camera_motion: Optional[str] = Field(default=None, description="Primary camera movement")
+    cinematic_purpose: Optional[str] = Field(default=None, description="Purpose of the shot within the scene")
+    recreation_guidance: Optional[str] = Field(default=None, description="Actionable guidance for recreating the shot")
+
 
 class Scene(BaseModel):
     """A scene in the video."""
@@ -119,6 +147,10 @@ class Scene(BaseModel):
     texture_details: Optional[dict] = Field(default=None, description="Surface and material textures")
     shots: list[Shot] = Field(default_factory=list)
     key_entities: list[Entity] = Field(default_factory=list)
+    camera_breakdowns: list[CameraShotBreakdown] = Field(
+        default_factory=list,
+        description="Derived camera breakdowns for each shot in the scene"
+    )
     
     class Config:
         json_schema_extra = {
@@ -227,6 +259,10 @@ class PromptBundle(BaseModel):
     video_prompts: list[PromptSpec] = Field(default_factory=list, description="Image-to-video or text-to-video prompts")
     shot_descriptions: list[str] = Field(default_factory=list)
     notes: Optional[str] = None
+    camera_breakdowns: list[CameraShotBreakdown] = Field(
+        default_factory=list,
+        description="Camera analysis entries for each shot in the scene"
+    )
     created_at: datetime = Field(default_factory=datetime.now)
 
     class Config:

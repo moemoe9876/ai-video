@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional, List
 from datetime import datetime
 
-from .models import VideoReport, Scene, Shot, PromptBundle
+from .models import VideoReport, Scene, Shot, PromptBundle, CameraShotBreakdown
 from .logging import get_logger
 
 logger = get_logger(__name__)
@@ -30,51 +30,7 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path, bundles: 
         "",
         "---",
         "",
-        "## 🎬 Film Technical Specifications",
-        "",
     ]
-    
-    # Film stock
-    if report.film_stock_look:
-        md_lines.extend([
-            "### Film Stock",
-            report.film_stock_look,
-            ""
-        ])
-    
-    # Lens
-    if report.lens_characteristics:
-        md_lines.extend([
-            "### Lens",
-            report.lens_characteristics,
-            ""
-        ])
-    
-    # Style
-    if report.overall_style:
-        md_lines.extend([
-            "### Style",
-            report.overall_style,
-            ""
-        ])
-    
-    # Mood
-    if report.overall_mood:
-        md_lines.extend([
-            "### Mood",
-            report.overall_mood,
-            ""
-        ])
-    
-    # Cultural context
-    if report.cultural_context:
-        md_lines.extend([
-            "### Cultural Context",
-            report.cultural_context,
-            ""
-        ])
-    
-    md_lines.extend(["---", ""])
     
     # Process each scene
     for scene_idx, scene in enumerate(report.scenes, 1):
@@ -237,79 +193,148 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path, bundles: 
                         md_lines.append(f"  - Action: {action}")
             md_lines.append("")
         
-        # Shots with ultra-detailed camera positioning
+        # Shots with cinematography breakdowns
         if scene.shots:
             md_lines.extend([
                 "### 🎥 Shot Details",
                 ""
             ])
-            
+
+            scene_breakdowns = []
+            bundle_breakdowns = None
+            if bundles and (scene_idx - 1) < len(bundles):
+                bundle_candidate = bundles[scene_idx - 1]
+                if getattr(bundle_candidate, "camera_breakdowns", None):
+                    bundle_breakdowns = bundle_candidate.camera_breakdowns
+
+            source_breakdowns = bundle_breakdowns or getattr(scene, "camera_breakdowns", None) or []
+
+            for item in source_breakdowns:
+                if isinstance(item, dict):
+                    try:
+                        scene_breakdowns.append(CameraShotBreakdown(**item))
+                    except Exception:
+                        continue
+                elif isinstance(item, CameraShotBreakdown):
+                    scene_breakdowns.append(item)
+
             for shot_idx, shot in enumerate(scene.shots, 1):
                 md_lines.extend([
                     f"#### Shot {shot_idx}",
                     ""
                 ])
-                
+
                 if shot.description:
                     md_lines.append(f"**Description:** {shot.description}")
                 if shot.action:
                     md_lines.append(f"**Action:** {shot.action}")
-                if shot.shot_type:
-                    md_lines.append(f"**Shot Type:** {shot.shot_type}")
-                
-                md_lines.append("")
-                
-                # Ultra-precision camera positioning
-                has_camera_data = any([
-                    shot.camera_position,
-                    shot.camera_angle_degrees,
-                    shot.camera_distance_meters,
-                    shot.camera_height_meters,
-                    shot.camera_movement_trajectory,
-                    shot.lens_focal_length,
-                    shot.depth_of_field
-                ])
-                
-                if has_camera_data:
+
+                breakdown = scene_breakdowns[shot_idx - 1] if shot_idx - 1 < len(scene_breakdowns) else None
+
+                if breakdown:
+                    md_lines.append("")
                     md_lines.extend([
-                        "**📐 Camera Positioning (Ultra-Precision):**",
+                        "**🎯 Cinematography Breakdown:**",
                         ""
                     ])
-                    
-                    if shot.camera_position:
-                        md_lines.append(f"- **Position:** {shot.camera_position}")
-                    if shot.camera_angle_degrees:
-                        md_lines.append(f"- **Angle:** {shot.camera_angle_degrees}")
-                    if shot.camera_distance_meters:
-                        md_lines.append(f"- **Distance:** {shot.camera_distance_meters}")
-                    if shot.camera_height_meters:
-                        md_lines.append(f"- **Height:** {shot.camera_height_meters}")
-                    if shot.camera_movement_trajectory:
-                        md_lines.append(f"- **Movement:** {shot.camera_movement_trajectory}")
-                    if shot.lens_focal_length:
-                        md_lines.append(f"- **Lens:** {shot.lens_focal_length}")
-                    if shot.depth_of_field:
-                        md_lines.append(f"- **Depth of Field:** {shot.depth_of_field}")
-                    
+
+                    camera_components = []
+                    if breakdown.camera_shot_type:
+                        camera_components.append(f"Shot Type: {breakdown.camera_shot_type}")
+                    if breakdown.camera_angle:
+                        camera_components.append(f"Angle: {breakdown.camera_angle}")
+                    if breakdown.camera_height:
+                        camera_components.append(f"Height: {breakdown.camera_height}")
+                    if breakdown.camera_distance:
+                        camera_components.append(f"Distance: {breakdown.camera_distance}")
+                    if breakdown.framing_style:
+                        camera_components.append(f"Framing: {breakdown.framing_style}")
+                    if breakdown.lens_type_estimate:
+                        camera_components.append(f"Lens: {breakdown.lens_type_estimate}")
+                    if breakdown.depth_of_field:
+                        camera_components.append(f"Depth of Field: {breakdown.depth_of_field}")
+                    if breakdown.camera_motion and breakdown.camera_motion.lower() != "static":
+                        camera_components.append(f"Camera Motion: {breakdown.camera_motion}")
+
+                    if camera_components:
+                        md_lines.append("- **Camera:** " + "; ".join(camera_components))
+
+                    lighting_bits = []
+                    if breakdown.lighting_style.key_light:
+                        lighting_bits.append(f"Key: {breakdown.lighting_style.key_light}")
+                    if breakdown.lighting_style.fill_light:
+                        lighting_bits.append(f"Fill: {breakdown.lighting_style.fill_light}")
+                    if breakdown.lighting_style.practical_lights:
+                        lighting_bits.append(f"Practicals: {breakdown.lighting_style.practical_lights}")
+                    if breakdown.lighting_style.mood:
+                        lighting_bits.append(f"Mood: {breakdown.lighting_style.mood}")
+                    if lighting_bits:
+                        md_lines.append("- **Lighting:** " + "; ".join(lighting_bits))
+
+                    if breakdown.composition_notes:
+                        md_lines.append(f"- **Composition Notes:** {breakdown.composition_notes}")
+                    if breakdown.set_design_notes:
+                        md_lines.append(f"- **Set Design Notes:** {breakdown.set_design_notes}")
+                    if breakdown.cinematic_purpose:
+                        md_lines.append(f"- **Purpose:** {breakdown.cinematic_purpose}")
+                    if breakdown.recreation_guidance:
+                        md_lines.append(f"- **Recreation Guidance:** {breakdown.recreation_guidance}")
+
                     md_lines.append("")
-                
-                # Spatial relationships
-                if shot.subject_position_frame:
+                else:
+                    md_lines.append("")
+                    has_camera_data = any([
+                        shot.camera_position,
+                        shot.camera_angle_degrees,
+                        shot.camera_distance_meters,
+                        shot.camera_height_meters,
+                        shot.camera_movement_trajectory,
+                        shot.lens_focal_length,
+                        shot.depth_of_field
+                    ])
+
+                    if has_camera_data:
+                        md_lines.extend([
+                            "**📐 Camera Positioning (Source Data):**",
+                            ""
+                        ])
+
+                        if shot.camera_position:
+                            md_lines.append(f"- **Position:** {shot.camera_position}")
+                        if shot.camera_angle_degrees:
+                            md_lines.append(f"- **Angle:** {shot.camera_angle_degrees}")
+                        if shot.camera_distance_meters:
+                            md_lines.append(f"- **Distance:** {shot.camera_distance_meters}")
+                        if shot.camera_height_meters:
+                            md_lines.append(f"- **Height:** {shot.camera_height_meters}")
+                        if shot.camera_movement_trajectory:
+                            md_lines.append(f"- **Movement:** {shot.camera_movement_trajectory}")
+                        if shot.lens_focal_length:
+                            md_lines.append(f"- **Lens:** {shot.lens_focal_length}")
+                        if shot.depth_of_field:
+                            md_lines.append(f"- **Depth of Field:** {shot.depth_of_field}")
+
+                        md_lines.append("")
+
+                # Spatial relationships – avoid duplication if captured in composition notes
+                composition_text = breakdown.composition_notes.lower() if breakdown and breakdown.composition_notes else ""
+
+                if shot.subject_position_frame and shot.subject_position_frame.lower() not in composition_text:
                     md_lines.extend([
                         f"**📍 Subject Position:** {shot.subject_position_frame}",
                         ""
                     ])
-                
-                if shot.spatial_relationships:
+
+                if shot.spatial_relationships and shot.spatial_relationships.lower() not in composition_text:
                     md_lines.extend([
-                        f"**🗺 Spatial Relationships:**",
+                        "**🗺 Spatial Relationships:**",
                         shot.spatial_relationships,
                         ""
                     ])
-                
+
                 if shot.motion_physics:
                     md_lines.extend([
-                        f"**⚙️ Motion Physics:**",
+                        "**⚙️ Motion Physics:**",
                         shot.motion_physics,
                         ""
                     ])
@@ -560,16 +585,10 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path, bundles: 
             # Lighting
             if scene.lighting:
                 prompt_parts.append(f"Lighting: {scene.lighting}")
-            
-            # Film stock
-            if report.film_stock_look:
-                prompt_parts.append(f"Film Stock: {report.film_stock_look}")
-            
-            # Style
-            if report.overall_style:
-                prompt_parts.append(f"Style: {report.overall_style}")
-            
-            # Mood
+
+            # Style / Mood scoped to the scene
+            if scene.style:
+                prompt_parts.append(f"Style: {scene.style}")
             if scene.mood:
                 prompt_parts.append(f"Mood: {scene.mood}")
             
@@ -613,10 +632,8 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path, bundles: 
                         last_frame_parts.append(f"Camera: {cam_pos.split('to')[-1].strip() if 'to' in cam_pos else cam_pos}")
                 if scene.lighting:
                     last_frame_parts.append(f"Lighting: {scene.lighting}")
-                if report.film_stock_look:
-                    last_frame_parts.append(f"Film Stock: {report.film_stock_look}")
-                if report.overall_style:
-                    last_frame_parts.append(f"Style: {report.overall_style}")
+                if scene.style:
+                    last_frame_parts.append(f"Style: {scene.style}")
                 
                 final_last_prompt = ". ".join(last_frame_parts) + "."
             
@@ -663,10 +680,12 @@ def generate_detailed_markdown(report: VideoReport, output_path: Path, bundles: 
             if scene.shots and scene.shots[0].motion_physics:
                 video_prompt_parts.append(f"Motion: {scene.shots[0].motion_physics}")
             
-            # Film look
-            if report.film_stock_look:
-                video_prompt_parts.append(f"Film look: {report.film_stock_look}")
-            
+            # Style / mood scoped to the scene
+            if scene.style:
+                video_prompt_parts.append(f"Style: {scene.style}")
+            if scene.mood:
+                video_prompt_parts.append(f"Mood: {scene.mood}")
+
             video_prompt = ". ".join(video_prompt_parts) + "."
             
             md_lines.extend([

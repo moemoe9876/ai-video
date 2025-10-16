@@ -6,13 +6,15 @@ from datetime import datetime
 
 from ..models import (
     VideoReport, Scene, Shot, Entity,
-    PromptSpec, PromptBundle, PromptType
+    PromptSpec, PromptBundle, PromptType,
+    CameraShotBreakdown, LightingStyleBreakdown,
 )
 from ..paths import path_builder
 from ..storage import save_model, load_model
 from ..settings import settings
 from ..logging import get_logger, LogContext
 from ..utils import format_timestamp
+from .camera_analysis import CameraVisionAnalyzer
 
 logger = get_logger(__name__)
 
@@ -21,6 +23,7 @@ class PromptGenerationAgent:
     
     def __init__(self):
         self.config = settings.prompts
+        self.camera_analyzer = CameraVisionAnalyzer()
     
     def generate_prompts(
         self,
@@ -59,17 +62,21 @@ class PromptGenerationAgent:
         image_prompts = []
         video_prompts = []
         shot_descriptions = []
-        
-        for shot in scene.shots:
-            img_prompt = self._generate_image_prompt(shot, scene, report)
+
+        camera_breakdowns = self._ensure_camera_breakdowns(scene, report)
+
+        for idx, shot in enumerate(scene.shots):
+            breakdown = camera_breakdowns[idx] if idx < len(camera_breakdowns) else None
+
+            img_prompt = self._generate_image_prompt(shot, scene, report, breakdown)
             image_prompts.append(img_prompt)
-            
-            vid_prompt = self._generate_video_prompt(shot, scene, report)
+
+            vid_prompt = self._generate_video_prompt(shot, scene, report, breakdown)
             video_prompts.append(vid_prompt)
-            
-            shot_desc = self._create_shot_description(shot, scene)
+
+            shot_desc = self._create_shot_description(shot, scene, breakdown)
             shot_descriptions.append(shot_desc)
-        
+
         if not scene.shots:
             img_prompt = self._generate_scene_image_prompt(scene, report)
             image_prompts.append(img_prompt)
@@ -88,27 +95,50 @@ class PromptGenerationAgent:
             video_prompts=video_prompts,
             shot_descriptions=shot_descriptions,
             notes=notes,
+            camera_breakdowns=camera_breakdowns,
             created_at=datetime.now()
         )
         
         return bundle
     
-    def _generate_image_prompt(self, shot: Shot, scene: Scene, report: VideoReport) -> PromptSpec:
+    def _ensure_camera_breakdowns(self, scene: Scene, report: VideoReport) -> list[CameraShotBreakdown]:
+        """Ensure camera breakdowns are available for a scene."""
+
+        if scene.camera_breakdowns:
+            # When loaded from JSON, data might be dicts – coerce if needed
+            if all(isinstance(b, CameraShotBreakdown) for b in scene.camera_breakdowns):
+                return list(scene.camera_breakdowns)
+            coerced = [CameraShotBreakdown(**b) if isinstance(b, dict) else b for b in scene.camera_breakdowns]
+            scene.camera_breakdowns = coerced
+            return coerced
+
+        breakdowns = self.camera_analyzer.analyze_scene(scene, report)
+        scene.camera_breakdowns = breakdowns
+        return breakdowns
+
+    def _generate_image_prompt(
+        self,
+        shot: Shot,
+        scene: Scene,
+        report: VideoReport,
+        breakdown: Optional[CameraShotBreakdown] = None,
+    ) -> PromptSpec:
         """Generate an ultra-detailed text-to-image prompt for a shot."""
         # Core elements
         subject = self._extract_subject(shot, scene)
         action = shot.action
         scene_desc = self._build_detailed_scene_description(scene, report)
         
-        # Technical cinematography
-        camera = self._build_camera_description(shot)
-        lens_desc = self._extract_lens_details(report, scene)
+        # Technical cinematography and lighting
+        camera = self._compose_camera_prompt(shot, breakdown)
+        lens_desc = self._extract_lens_details(scene, breakdown)
+        if lens_desc and camera and lens_desc.lower() in camera.lower():
+            lens_desc = None
+        lighting = self._compose_lighting_prompt(scene, report, breakdown)
+        recreation_guidance = breakdown.recreation_guidance if breakdown else None
+        composition_notes = breakdown.composition_notes if breakdown else None
+        set_design_notes = breakdown.set_design_notes if breakdown else None
         
-        # Lighting with professional terminology  
-        lighting = self._build_detailed_lighting(scene, report)
-        
-        # Film stock and style
-        film_stock = self._extract_film_stock(scene, report)
         style = self._build_comprehensive_style(scene, report)
         
         # Physical world details
@@ -145,22 +175,27 @@ class PromptGenerationAgent:
                 prompt_parts.append(f"Camera: {camera}")
             if lens_desc:
                 prompt_parts.append(f"Lens: {lens_desc}")
-        
+            if composition_notes and composition_notes.lower() not in " ".join(prompt_parts).lower():
+                prompt_parts.append(f"Composition: {composition_notes}")
+            if set_design_notes and set_design_notes.lower() not in " ".join(prompt_parts).lower():
+                prompt_parts.append(f"Set design: {set_design_notes}")
+
         # Lighting with professional detail
         if self.config.include_lighting and lighting:
             prompt_parts.append(f"Lighting: {lighting}")
+
+        if recreation_guidance:
+            prompt_parts.append(f"Recreation guidance: {recreation_guidance}")
         
         # Texture and materials
         if texture_details:
             prompt_parts.append(f"Textures: {texture_details}")
         
         # Film stock and style
-        if self.config.include_style:
-            if film_stock:
-                prompt_parts.append(f"Film stock: {film_stock}")
-            if style:
-                prompt_parts.append(f"Style: {style}")
+        if self.config.include_style and style:
+            prompt_parts.append(f"Style: {style}")
         
+        prompt_parts = self._unique_parts(prompt_parts)
         prompt_text = ". ".join(prompt_parts) + "."
         
         # Don't truncate - we want ALL the detail
@@ -179,69 +214,76 @@ class PromptGenerationAgent:
             negative_prompt="blur, blurry, out of focus, distorted, low quality, pixelated, grainy artifacts, watermark, text overlay, bad anatomy, deformed"
         )
     
-    def _generate_video_prompt(self, shot: Shot, scene: Scene, report: VideoReport) -> PromptSpec:
+    def _generate_video_prompt(
+        self,
+        shot: Shot,
+        scene: Scene,
+        report: VideoReport,
+        breakdown: Optional[CameraShotBreakdown] = None,
+    ) -> PromptSpec:
         """Generate an ultra-detailed text-to-video or image-to-video prompt for a shot."""
         subject = self._extract_subject(shot, scene)
         action = shot.action
         scene_desc = self._build_detailed_scene_description(scene, report)
-        camera = self._build_camera_movement_description(shot)
-        lighting = self._build_detailed_lighting(scene, report)
-        film_stock = self._extract_film_stock(scene, report)
+        camera = self._compose_camera_prompt(shot, breakdown)
+        lighting = self._compose_lighting_prompt(scene, report, breakdown)
         style = self._build_comprehensive_style(scene, report)
         physical_details = self._extract_physical_world_details(scene)
         human_details = self._extract_human_subjects_details(scene)
-        
+        recreation_guidance = breakdown.recreation_guidance if breakdown else None
+        cinematic_purpose = breakdown.cinematic_purpose if breakdown else None
+
         # Build comprehensive video prompt
         prompt_parts = []
-        
+
         # Subject with human details
         if human_details:
             prompt_parts.append(f"{subject}. {human_details}")
         else:
             prompt_parts.append(subject)
-        
+
         # Action
         if action:
             prompt_parts.append(action)
-        
+
         # Scene with physical details
         scene_part = f"in {scene_desc}"
         if physical_details:
             scene_part += f". Environment: {physical_details}"
         prompt_parts.append(scene_part)
-        
-        # Camera movement
+
+        # Camera and movement
         if self.config.include_camera_details and camera:
             prompt_parts.append(f"Camera: {camera}")
-        
+
         # Lighting
         if self.config.include_lighting and lighting:
             prompt_parts.append(f"Lighting: {lighting}")
-        
+
+        if cinematic_purpose:
+            prompt_parts.append(f"Purpose: {cinematic_purpose}")
+
+        if recreation_guidance:
+            prompt_parts.append(f"Recreation guidance: {recreation_guidance}")
+
         # Film stock and style
-        if self.config.include_style:
-            if film_stock:
-                prompt_parts.append(f"Film look: {film_stock}")
-            if style:
-                prompt_parts.append(f"Style: {style}")
-        
+        if self.config.include_style and style:
+            prompt_parts.append(f"Style: {style}")
+
+        prompt_parts = self._unique_parts(prompt_parts)
         prompt_text = ". ".join(prompt_parts) + "."
-        
-        # Don't truncate - keep all detail for accurate recreation
-        # if self.config.max_prompt_length and len(prompt_text) > self.config.max_prompt_length:
-        #     prompt_text = prompt_text[:self.config.max_prompt_length - 3] + "..."
-        
+
         # Determine if first+last frame approach is beneficial
         use_first_last = self._should_use_first_last_frame(scene, shot)
         first_frame_prompt = None
         last_frame_prompt = None
         reasoning = None
-        
+
         if use_first_last:
             first_frame_prompt, last_frame_prompt, reasoning = self._generate_first_last_frame_prompts(
                 scene, shot, report
             )
-        
+
         return PromptSpec(
             prompt_type=PromptType.IMAGE_TO_VIDEO,
             text=prompt_text,
@@ -254,7 +296,7 @@ class PromptGenerationAgent:
             use_first_last_frame=use_first_last,
             first_frame_prompt=first_frame_prompt,
             last_frame_prompt=last_frame_prompt,
-            first_last_frame_reasoning=reasoning
+            first_last_frame_reasoning=reasoning,
         )
     
     def _generate_scene_image_prompt(self, scene: Scene, report: VideoReport) -> PromptSpec:
@@ -262,7 +304,7 @@ class PromptGenerationAgent:
         subject = self._extract_scene_subject(scene)
         scene_desc = scene.location
         lighting = scene.lighting or "natural lighting"
-        style = scene.style or report.overall_style or "cinematic, realistic"
+        style = scene.style or scene.mood or "cinematic, realistic"
         
         prompt_text = f"{subject} in {scene_desc}. {lighting}. {style}."
         
@@ -283,7 +325,7 @@ class PromptGenerationAgent:
         action = scene.description
         scene_desc = scene.location
         lighting = scene.lighting or "natural lighting"
-        style = scene.style or report.overall_style or "cinematic"
+        style = scene.style or scene.mood or "cinematic"
         
         prompt_text = f"{subject}. {action}. Scene: {scene_desc}. {lighting}. {style} style."
         
@@ -346,17 +388,23 @@ class PromptGenerationAgent:
             parts.append(scene.color_palette)
         if scene.color_temperature:
             parts.append(scene.color_temperature)
-        
-        # Cultural context
-        if report.cultural_context:
-            parts.append(report.cultural_context)
-        
+
         return ", ".join(parts)
-    
-    def _extract_lens_details(self, report: VideoReport, scene: Scene) -> str:
-        """Extract lens characteristics."""
-        if report.lens_characteristics:
-            return report.lens_characteristics
+
+    def _extract_lens_details(
+        self,
+        scene: Scene,
+        breakdown: Optional[CameraShotBreakdown],
+    ) -> Optional[str]:
+        """Extract lens characteristics specific to a scene or shot."""
+
+        if breakdown and breakdown.lens_type_estimate:
+            return breakdown.lens_type_estimate
+
+        for shot in scene.shots:
+            if shot.lens_focal_length:
+                return str(shot.lens_focal_length)
+
         return None
     
     def _build_detailed_lighting(self, scene: Scene, report: VideoReport) -> str:
@@ -379,28 +427,15 @@ class PromptGenerationAgent:
         
         return ", ".join(parts) if parts else (scene.lighting or "natural lighting")
     
-    def _extract_film_stock(self, scene: Scene, report: VideoReport) -> str:
-        """Extract film stock characteristics."""
-        # Scene-specific film look
-        if scene.film_stock_resemblance:
-            return scene.film_stock_resemblance
-        # Overall film look
-        if report.film_stock_look:
-            return report.film_stock_look
-        return None
-    
     def _build_comprehensive_style(self, scene: Scene, report: VideoReport) -> str:
         """Build comprehensive style description."""
         parts = []
-        
+
         if scene.style:
             parts.append(scene.style)
-        elif report.overall_style:
-            parts.append(report.overall_style)
-        
-        if report.cultural_context and report.cultural_context not in str(scene.style):
-            parts.append(report.cultural_context)
-        
+        if scene.mood:
+            parts.append(scene.mood)
+
         return ", ".join(parts) if parts else "cinematic, realistic"
     
     def _extract_physical_world_details(self, scene: Scene) -> str:
@@ -869,7 +904,6 @@ class PromptGenerationAgent:
         subject = self._extract_subject(shot, scene)
         scene_desc = self._build_detailed_scene_description(scene, report)
         lighting = self._build_detailed_lighting(scene, report)
-        film_stock = self._extract_film_stock(scene, report)
         style = self._build_comprehensive_style(scene, report)
         
         # Build base prompt elements
@@ -877,8 +911,6 @@ class PromptGenerationAgent:
         base_elements.append(f"in {scene_desc}")
         if lighting:
             base_elements.append(f"Lighting: {lighting}")
-        if film_stock:
-            base_elements.append(f"Film: {film_stock}")
         if style:
             base_elements.append(f"Style: {style}")
         
@@ -922,39 +954,129 @@ class PromptGenerationAgent:
         
         return (first_frame_prompt, last_frame_prompt, reasoning)
     
-    def _build_camera_description(self, shot: Shot) -> str:
-        """Build camera description for still image."""
-        parts = []
-        
-        if shot.shot_type:
-            shot_type_str = shot.shot_type if isinstance(shot.shot_type, str) else shot.shot_type.value
-            parts.append(f"{shot_type_str} shot")
-        
-        if shot.camera_description:
-            parts.append(shot.camera_description)
-        
-        return ", ".join(parts) if parts else "medium shot"
+    def _compose_camera_prompt(
+        self,
+        shot: Shot,
+        breakdown: Optional[CameraShotBreakdown],
+    ) -> Optional[str]:
+        """Compose a concise camera description using derived breakdown data."""
+
+        parts: list[str] = []
+
+        if breakdown:
+            if breakdown.camera_shot_type:
+                parts.append(breakdown.camera_shot_type)
+            if breakdown.camera_angle:
+                parts.append(f"{breakdown.camera_angle} angle")
+            if breakdown.camera_height:
+                parts.append(breakdown.camera_height)
+            if breakdown.camera_distance:
+                parts.append(f"{breakdown.camera_distance} framing")
+            if breakdown.framing_style:
+                parts.append(f"{breakdown.framing_style} composition")
+            if breakdown.lens_type_estimate:
+                parts.append(f"{breakdown.lens_type_estimate} lens")
+            if breakdown.depth_of_field:
+                parts.append(f"{breakdown.depth_of_field} depth of field")
+            if breakdown.camera_motion and breakdown.camera_motion.lower() != "static":
+                parts.append(f"{breakdown.camera_motion} move")
+        else:
+            if shot.shot_type:
+                shot_type_str = shot.shot_type if isinstance(shot.shot_type, str) else getattr(shot.shot_type, "value", str(shot.shot_type))
+                parts.append(f"{shot_type_str} shot")
+            if shot.camera_description:
+                parts.append(shot.camera_description)
+            if shot.camera_movement:
+                parts.append(f"camera {shot.camera_movement}")
+
+        parts = self._unique_parts(parts)
+        if not parts:
+            return None
+
+        return ", ".join(parts)
+
+    def _compose_lighting_prompt(
+        self,
+        scene: Scene,
+        report: VideoReport,
+        breakdown: Optional[CameraShotBreakdown],
+    ) -> Optional[str]:
+        """Merge scene lighting details with derived lighting breakdown."""
+
+        base_lighting = self._build_detailed_lighting(scene, report)
+        parts: list[str] = [base_lighting] if base_lighting else []
+
+        if breakdown and breakdown.lighting_style:
+            lighting_style = breakdown.lighting_style
+            extra_bits: list[str] = []
+            if lighting_style.key_light:
+                extra_bits.append(f"Key: {lighting_style.key_light}")
+            if lighting_style.fill_light:
+                extra_bits.append(f"Fill: {lighting_style.fill_light}")
+            if lighting_style.practical_lights:
+                extra_bits.append(f"Practicals: {lighting_style.practical_lights}")
+            if lighting_style.mood and (not base_lighting or lighting_style.mood.lower() not in base_lighting.lower()):
+                extra_bits.append(f"Mood: {lighting_style.mood}")
+            if extra_bits:
+                parts.append("; ".join(extra_bits))
+
+        parts = self._unique_parts(parts)
+        if not parts:
+            return None
+
+        return ". ".join(parts)
+
+    def _unique_parts(self, parts: list[Optional[str]]) -> list[str]:
+        """Return case-insensitive unique strings preserving order."""
+
+        unique: list[str] = []
+        seen: set[str] = set()
+        for part in parts:
+            if not part:
+                continue
+            normalized = part.strip().lower()
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            unique.append(part.strip())
+        return unique
     
-    def _build_camera_movement_description(self, shot: Shot) -> str:
-        """Build camera movement description for video."""
-        parts = []
-        
-        if shot.camera_movement:
-            movement_str = shot.camera_movement if isinstance(shot.camera_movement, str) else shot.camera_movement.value
-            parts.append(f"camera {movement_str}")
-        
-        if shot.camera_description:
-            parts.append(shot.camera_description)
-        
-        return ", ".join(parts) if parts else "static camera"
-    
-    def _create_shot_description(self, shot: Shot, scene: Scene) -> str:
-        """Create a human-readable shot description."""
+    def _create_shot_description(
+        self,
+        shot: Shot,
+        scene: Scene,
+        breakdown: Optional[CameraShotBreakdown] = None,
+    ) -> str:
+        """Create a human-readable shot description with cinematography cues."""
+
         timestamp = ""
         if self.config.include_timestamps:
             timestamp = f"[{format_timestamp(shot.start_time)}-{format_timestamp(shot.end_time)}] "
-        
-        return f"{timestamp}Shot {shot.shot_index}: {shot.description} - {shot.action}"
+
+        _ = scene  # Not currently needed but retained for extensibility
+
+        core = f"Shot {shot.shot_index}: {shot.description}"
+        if shot.action:
+            core += f" - {shot.action}"
+
+        cinematography_bits: list[str] = []
+        if breakdown:
+            if breakdown.camera_shot_type:
+                cinematography_bits.append(breakdown.camera_shot_type)
+            if breakdown.camera_angle:
+                cinematography_bits.append(f"{breakdown.camera_angle} angle")
+            if breakdown.camera_motion and breakdown.camera_motion.lower() != "static":
+                cinematography_bits.append(f"{breakdown.camera_motion} camera")
+        else:
+            if shot.shot_type:
+                cinematography_bits.append(str(shot.shot_type))
+            if shot.camera_movement:
+                cinematography_bits.append(f"camera {shot.camera_movement}")
+
+        if cinematography_bits:
+            core += f" ({', '.join(cinematography_bits)})"
+
+        return f"{timestamp}{core}"
     
     def _generate_notes(self, scene: Scene, report: VideoReport) -> str:
         """Generate director's notes for a scene."""
@@ -969,9 +1091,21 @@ class PromptGenerationAgent:
         if scene.style:
             notes_parts.append(f"Style: {scene.style}")
         
-        if report.overall_mood:
-            notes_parts.append(f"Overall mood: {report.overall_mood}")
+        if scene.camera_breakdowns:
+            guidance = [b.recreation_guidance for b in scene.camera_breakdowns if b.recreation_guidance]
+            guidance = self._unique_parts([g for g in guidance if g])
+            if guidance:
+                notes_parts.append("Camera recreation: " + "; ".join(guidance))
+
+            lighting_moods = []
+            for breakdown in scene.camera_breakdowns:
+                if breakdown.lighting_style and breakdown.lighting_style.mood:
+                    lighting_moods.append(breakdown.lighting_style.mood)
+            lighting_moods = self._unique_parts(lighting_moods)
+            if lighting_moods:
+                notes_parts.append("Lighting mood cues: " + ", ".join(lighting_moods))
         
+        notes_parts = self._unique_parts(notes_parts)
         return ". ".join(notes_parts) if notes_parts else None
     
     @staticmethod

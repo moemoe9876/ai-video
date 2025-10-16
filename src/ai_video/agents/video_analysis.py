@@ -7,9 +7,10 @@ from datetime import datetime
 from ..models import VideoReport, Scene, Shot, Entity
 from ..gemini_client import GeminiVisionClient
 from ..paths import path_builder
-from ..storage import save_model
+from ..storage import save_model, write_json
 from ..utils import generate_video_id
 from ..logging import get_logger, LogContext
+from .camera_analysis import CameraVisionAnalyzer
 
 logger = get_logger(__name__)
 
@@ -18,6 +19,7 @@ class VideoAnalysisAgent:
     
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.client = GeminiVisionClient(api_key=api_key, model=model)
+        self.camera_analyzer = CameraVisionAnalyzer()
     
     def analyze(
         self,
@@ -62,6 +64,9 @@ class VideoAnalysisAgent:
                 raise RuntimeError(f"Video analysis failed: {response['error']}")
             
             report = self._build_report(response, video_id, str(video_source))
+            self._attach_camera_breakdowns(report)
+            if save_report:
+                self._save_camera_breakdowns(report)
             
             if save_report:
                 # Use the video_id from the report (which may be Gemini-generated) for the filename
@@ -223,3 +228,34 @@ class VideoAnalysisAgent:
         }
         
         return Shot(**shot_dict)
+
+    def _attach_camera_breakdowns(self, report: VideoReport) -> None:
+        """Enrich each scene with structured camera analysis."""
+
+        for scene in report.scenes:
+            scene.camera_breakdowns = self.camera_analyzer.analyze_scene(scene, report)
+
+    def _save_camera_breakdowns(self, report: VideoReport) -> None:
+        """Persist camera analysis to a standalone JSON artifact."""
+
+        analysis_path = path_builder.get_camera_analysis_path(report.video_id)
+        scenes_payload = []
+        for scene in report.scenes:
+            breakdowns = [b.model_dump(mode="json") for b in scene.camera_breakdowns]
+            scenes_payload.append(
+                {
+                    "scene_index": scene.scene_index,
+                    "start_time": scene.start_time,
+                    "end_time": scene.end_time,
+                    "camera_breakdowns": breakdowns,
+                }
+            )
+
+        payload = {
+            "video_id": report.video_id,
+            "source": report.source,
+            "created_at": report.created_at.isoformat() if hasattr(report.created_at, "isoformat") else None,
+            "scenes": scenes_payload,
+        }
+
+        write_json(payload, analysis_path)

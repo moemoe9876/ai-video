@@ -9,7 +9,7 @@ from ..agents.video_analysis import VideoAnalysisAgent
 from ..agents.prompt_generation import PromptGenerationAgent
 from ..models import VideoReport
 from ..paths import path_builder
-from ..storage import write_json
+from ..storage import write_json, file_exists
 from ..utils import get_run_id
 from ..logging import get_logger, LogContext
 from ..settings import settings
@@ -81,6 +81,9 @@ class PipelineOrchestrator:
                     manifest["artifacts"]["report"] = str(
                         path_builder.get_report_path(report.video_id)
                     )
+                    manifest["artifacts"]["camera_analysis"] = str(
+                        path_builder.get_camera_analysis_path(report.video_id)
+                    )
                 else:
                     if video_id is None:
                         raise ValueError("video_id required when skip_analysis=True")
@@ -88,6 +91,9 @@ class PipelineOrchestrator:
                     report = PromptGenerationAgent.load_report(report_path)
                     manifest["video_id"] = video_id
                     manifest["artifacts"]["report"] = str(report_path)
+                    camera_analysis_path = path_builder.get_camera_analysis_path(video_id)
+                    if file_exists(camera_analysis_path):
+                        manifest["artifacts"]["camera_analysis"] = str(camera_analysis_path)
                 
                 if not skip_prompts:
                     bundles = self._run_prompt_generation(report)

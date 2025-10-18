@@ -259,3 +259,4 @@ class VideoAnalysisAgent:
         }
 
         write_json(payload, analysis_path)
+        logger.info(f"Camera analysis saved to: {analysis_path}")

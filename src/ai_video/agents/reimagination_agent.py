@@ -392,7 +392,11 @@ class ReimaginationAgent:
         user_prompt: Optional[str],
     ) -> ReimaginedScene:
         """Generate reimagined variants for a single scene."""
+        # Determine if we're in Creative Reimagination Mode
+        is_creative_mode = bool(user_prompt)
+        
         payload = {
+            "mode": "creative_reimagination" if is_creative_mode else "standard",
             "global_style": global_style.model_dump(),
             "scene": {
                 "scene_index": scene.scene_index,
@@ -420,7 +424,8 @@ class ReimaginationAgent:
             },
             "requirements": {
                 "num_variants": num_variants,
-                "preserve_subject_action": True,
+                "creative_mode_enabled": is_creative_mode,
+                "preserve_subject_action": not is_creative_mode,  # False in creative mode
                 "prompt_guidelines": {
                     "min_word_count": 80,
                     "max_word_count": 130,
@@ -434,20 +439,43 @@ class ReimaginationAgent:
         }
         if user_prompt:
             payload["requirements"]["user_prompt"] = user_prompt
-        instructions = (
-            "Create clear, production-ready generation prompts that keep the original subject and action "
-            "but explore new moods, palettes, and settings aligned with the global style. Use approachable "
-            "language while weaving in precise camera and film terminology (shot type, lens, movement, lighting). "
-            "Each variant must name-drop at least one relevant filmmaker, photographer, or designer whose work matches the mood. "
-            "Draw lighting terms from the provided light-condition list and film stocks from the color film roster. "
-            "Always reference the cultural context when appropriate. Stay within 80-130 words per prompt using short, readable sentences. "
-            "For every variant return BOTH an `image_prompt` and a `video_prompt`: structure them using the formula "
-            "Subject + Action + Scene + Camera + Lighting + Style, inspired by the how-to-prompt guide. Describe the video prompt with explicit movement cues and pacing. "
-            "The JSON structure MUST be: {scene_index, scene_title, notes?, reimagined_variants: ["
-            "{variant_id, title, image_prompt, video_prompt, film_stock, lens, mood, cultural_context, style_notes?, camera_focus?, lighting_focus?, tags[]}]}"
-        )
-        if user_prompt:
-            instructions += " Prioritize the following user guidance verbatim: " + user_prompt.strip()
+        
+        if is_creative_mode:
+            instructions = (
+                "CREATIVE REIMAGINATION MODE: The user has provided a custom creative directive. "
+                "This directive takes ABSOLUTE PRECEDENCE. You are not bound by the original scene's subject, action, location, or any details. "
+                "Use the original prompts ONLY as inspiration or a creative blueprint—you may completely reimagine the scene. "
+                "Generate brand new subject matter, locations, actions, and compositions that fulfill the user's vision. "
+                "You have complete creative freedom.\n\n"
+                "For every variant:\n"
+                "- Create prompts that are entirely NEW and INDEPENDENT from the original source material\n"
+                "- Channel the user's directive faithfully—let it drive every creative choice\n"
+                "- Each variant should showcase a unique interpretation of the user's vision\n"
+                "- Use approachable language while weaving in precise camera and film terminology\n"
+                "- Name-drop at least one relevant filmmaker, photographer, or designer whose work matches the mood\n"
+                "- Draw lighting terms from the provided light-condition list and film stocks from the color film roster\n"
+                "- Reference cultural context when appropriate\n"
+                "- Stay within 300 words per prompt using short, readable sentences\n\n"
+                "Return BOTH `image_prompt` and `video_prompt` per variant using: Subject + Action + Scene + Camera + Lighting + Style.\n"
+                "Describe the video prompt with explicit movement cues and pacing.\n"
+                "JSON structure: {scene_index, scene_title, notes?, reimagined_variants: ["
+                "{variant_id, title, image_prompt, video_prompt, film_stock, lens, mood, cultural_context, style_notes?, camera_focus?, lighting_focus?, tags[]}]}\n\n"
+                "USER DIRECTIVE (HIGHEST PRIORITY): " + user_prompt.strip()
+            )
+        else:
+            instructions = (
+                "STANDARD MODE: Create clear, production-ready generation prompts that keep the original subject and action "
+                "but explore new moods, palettes, and settings aligned with the global style. Use approachable "
+                "language while weaving in precise camera and film terminology (shot type, lens, movement, lighting). "
+                "Each variant must name-drop at least one relevant filmmaker, photographer, or designer whose work matches the mood. "
+                "Draw lighting terms from the provided light-condition list and film stocks from the color film roster. "
+                "Always reference the cultural context when appropriate. Preserve branded elements and original locations as specified. "
+                "Stay within 300 words per prompt using short, readable sentences. "
+                "For every variant return BOTH an `image_prompt` and a `video_prompt`: structure them using the formula "
+                "Subject + Action + Scene + Camera + Lighting + Style, inspired by the how-to-prompt guide. Describe the video prompt with explicit movement cues and pacing. "
+                "The JSON structure MUST be: {scene_index, scene_title, notes?, reimagined_variants: ["
+                "{variant_id, title, image_prompt, video_prompt, film_stock, lens, mood, cultural_context, style_notes?, camera_focus?, lighting_focus?, tags[]}]}"
+            )
 
         response = self._invoke_model(instructions, payload)
 

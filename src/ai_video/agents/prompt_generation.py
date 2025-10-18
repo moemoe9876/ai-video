@@ -1,13 +1,15 @@
 """Prompt Generation Agent - Converts video analysis into generation prompts."""
 
+import re
+
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from datetime import datetime
 
 from ..models import (
     VideoReport, Scene, Shot, Entity,
     PromptSpec, PromptBundle, PromptType,
-    CameraShotBreakdown, LightingStyleBreakdown,
+    CameraShotBreakdown,
 )
 from ..paths import path_builder
 from ..storage import save_model, load_model
@@ -17,6 +19,43 @@ from ..utils import format_timestamp
 from .camera_analysis import CameraVisionAnalyzer
 
 logger = get_logger(__name__)
+
+SHOT_TYPE_MAP = {
+    "extreme_close_up": "Extreme close-up",
+    "extreme close up": "Extreme close-up",
+    "extreme_closeup": "Extreme close-up",
+    "close_up": "Close-up",
+    "close up": "Close-up",
+    "medium_close_up": "Medium close-up",
+    "medium close up": "Medium close-up",
+    "medium_shot": "Medium shot",
+    "medium": "Medium shot",
+    "full_body": "Full body shot",
+    "full shot": "Full body shot",
+    "wide": "Wide shot",
+    "wide_shot": "Wide shot",
+    "long": "Long shot",
+    "long_shot": "Long shot",
+    "establishing": "Wide establishing shot",
+    "two_shot": "Two-shot",
+    "over_shoulder": "Over-the-shoulder shot",
+    "pov": "Point-of-view shot",
+}
+
+MOVEMENT_PHRASES = {
+    "tracking": "tracking camera move",
+    "dolly": "dolly move",
+    "zoom in": "slow zoom-in",
+    "zoom out": "slow zoom-out",
+    "pan left": "leftward pan",
+    "pan right": "rightward pan",
+    "tilt up": "tilt-up move",
+    "tilt down": "tilt-down move",
+    "orbit": "orbiting move",
+    "handheld": "handheld camera energy",
+    "crane": "crane move",
+    "roll": "rolling move",
+}
 
 class PromptGenerationAgent:
     """Agent for generating prompts from video analysis."""
@@ -68,6 +107,44 @@ class PromptGenerationAgent:
         for idx, shot in enumerate(scene.shots):
             breakdown = camera_breakdowns[idx] if idx < len(camera_breakdowns) else None
 
+            if self._is_montage_shot(scene, shot):
+                clip_labels = self._extract_montage_items(scene, shot)
+                base_description = self._create_shot_description(shot, scene, breakdown)
+                if clip_labels:
+                    shot_descriptions.append(base_description + " [Montage overview]")
+                    for clip_idx, clip_label in enumerate(clip_labels, 1):
+                        img_prompt = self._generate_image_prompt(
+                            shot,
+                            scene,
+                            report,
+                            breakdown,
+                            clip_label=clip_label,
+                            clip_index=clip_idx,
+                        )
+                        image_prompts.append(img_prompt)
+
+                        vid_prompt = self._generate_video_prompt(
+                            shot,
+                            scene,
+                            report,
+                            breakdown,
+                            clip_label=clip_label,
+                        )
+                        video_prompts.append(vid_prompt)
+
+                        clip_description = self._create_montage_clip_description(
+                            shot,
+                            scene,
+                            breakdown,
+                            clip_label,
+                            clip_idx,
+                        )
+                        shot_descriptions.append(clip_description)
+                    continue
+                else:
+                    # Fall back to standard handling if we couldn't extract clips.
+                    shot_descriptions.append(base_description)
+
             img_prompt = self._generate_image_prompt(shot, scene, report, breakdown)
             image_prompts.append(img_prompt)
 
@@ -104,14 +181,6 @@ class PromptGenerationAgent:
     def _ensure_camera_breakdowns(self, scene: Scene, report: VideoReport) -> list[CameraShotBreakdown]:
         """Ensure camera breakdowns are available for a scene."""
 
-        if scene.camera_breakdowns:
-            # When loaded from JSON, data might be dicts – coerce if needed
-            if all(isinstance(b, CameraShotBreakdown) for b in scene.camera_breakdowns):
-                return list(scene.camera_breakdowns)
-            coerced = [CameraShotBreakdown(**b) if isinstance(b, dict) else b for b in scene.camera_breakdowns]
-            scene.camera_breakdowns = coerced
-            return coerced
-
         breakdowns = self.camera_analyzer.analyze_scene(scene, report)
         scene.camera_breakdowns = breakdowns
         return breakdowns
@@ -122,13 +191,17 @@ class PromptGenerationAgent:
         scene: Scene,
         report: VideoReport,
         breakdown: Optional[CameraShotBreakdown] = None,
+        clip_label: Optional[str] = None,
+        clip_index: Optional[int] = None,
     ) -> PromptSpec:
         """Generate an ultra-detailed text-to-image prompt for a shot."""
         # Core elements
-        subject = self._extract_subject(shot, scene)
-        action = shot.action
+        clip_subject, clip_action = self._clip_phrases(clip_label, shot.action)
+
+        subject = clip_subject or self._extract_subject(shot, scene)
+        action = clip_action or shot.action
         scene_desc = self._build_detailed_scene_description(scene, report)
-        
+
         # Technical cinematography and lighting
         camera = self._compose_camera_prompt(shot, breakdown)
         lens_desc = self._extract_lens_details(scene, breakdown)
@@ -162,11 +235,13 @@ class PromptGenerationAgent:
         # Action
         if action:
             prompt_parts.append(action)
-        
+
         # Scene with physical world details
         scene_part = f"in {scene_desc}"
         if physical_details:
             scene_part += f". Physical environment: {physical_details}"
+        if clip_subject and not physical_details:
+            scene_part += f". Clip focus: {clip_subject}"
         prompt_parts.append(scene_part)
         
         # Camera and lens
@@ -220,10 +295,13 @@ class PromptGenerationAgent:
         scene: Scene,
         report: VideoReport,
         breakdown: Optional[CameraShotBreakdown] = None,
+        clip_label: Optional[str] = None,
     ) -> PromptSpec:
         """Generate an ultra-detailed text-to-video or image-to-video prompt for a shot."""
-        subject = self._extract_subject(shot, scene)
-        action = shot.action
+        clip_subject, clip_action = self._clip_phrases(clip_label, shot.action)
+
+        subject = clip_subject or self._extract_subject(shot, scene)
+        action = clip_action or shot.action
         scene_desc = self._build_detailed_scene_description(scene, report)
         camera = self._compose_camera_prompt(shot, breakdown)
         lighting = self._compose_lighting_prompt(scene, report, breakdown)
@@ -250,6 +328,8 @@ class PromptGenerationAgent:
         scene_part = f"in {scene_desc}"
         if physical_details:
             scene_part += f". Environment: {physical_details}"
+        if clip_subject and not physical_details:
+            scene_part += f". Clip focus: {clip_subject}"
         prompt_parts.append(scene_part)
 
         # Camera and movement
@@ -275,6 +355,8 @@ class PromptGenerationAgent:
 
         # Determine if first+last frame approach is beneficial
         use_first_last = self._should_use_first_last_frame(scene, shot)
+        if clip_label:
+            use_first_last = False
         first_frame_prompt = None
         last_frame_prompt = None
         reasoning = None
@@ -971,23 +1053,38 @@ class PromptGenerationAgent:
             if breakdown.camera_height:
                 parts.append(breakdown.camera_height)
             if breakdown.camera_distance:
-                parts.append(f"{breakdown.camera_distance} framing")
+                parts.append(breakdown.camera_distance)
             if breakdown.framing_style:
-                parts.append(f"{breakdown.framing_style} composition")
+                framing = breakdown.framing_style
+                if "composition" not in framing.lower():
+                    framing += " composition"
+                parts.append(framing)
             if breakdown.lens_type_estimate:
-                parts.append(f"{breakdown.lens_type_estimate} lens")
+                lens = breakdown.lens_type_estimate.strip()
+                if lens and "indeterminate" not in lens.lower():
+                    if "lens" not in lens.lower():
+                        lens += " lens"
+                    parts.append(lens)
             if breakdown.depth_of_field:
-                parts.append(f"{breakdown.depth_of_field} depth of field")
-            if breakdown.camera_motion and breakdown.camera_motion.lower() != "static":
-                parts.append(f"{breakdown.camera_motion} move")
+                dof = breakdown.depth_of_field
+                if "indeterminate" in dof.lower():
+                    parts.append(dof)
+                else:
+                    if "depth of field" not in dof.lower() and "focus" not in dof.lower():
+                        dof += " depth of field"
+                    parts.append(dof)
+            movement_phrase = self._movement_phrase(breakdown.camera_motion)
+            if movement_phrase:
+                parts.append(movement_phrase)
         else:
-            if shot.shot_type:
-                shot_type_str = shot.shot_type if isinstance(shot.shot_type, str) else getattr(shot.shot_type, "value", str(shot.shot_type))
-                parts.append(f"{shot_type_str} shot")
+            shot_type_str = self._humanize_shot_type(shot.shot_type)
+            if shot_type_str:
+                parts.append(shot_type_str)
             if shot.camera_description:
                 parts.append(shot.camera_description)
-            if shot.camera_movement:
-                parts.append(f"camera {shot.camera_movement}")
+            movement_phrase = self._movement_phrase(shot.camera_movement)
+            if movement_phrase:
+                parts.append(movement_phrase)
 
         parts = self._unique_parts(parts)
         if not parts:
@@ -1040,6 +1137,123 @@ class PromptGenerationAgent:
             seen.add(normalized)
             unique.append(part.strip())
         return unique
+
+    def _humanize_shot_type(self, shot_type: Optional[str]) -> Optional[str]:
+        if not shot_type:
+            return None
+        key = shot_type.lower().strip()
+        if key in SHOT_TYPE_MAP:
+            return SHOT_TYPE_MAP[key]
+        label = shot_type.replace("_", " ").strip(" .")
+        if not label:
+            return None
+        if ":" in label or "shot" in label.lower():
+            return label
+        label = label.title()
+        if not label.lower().endswith("shot"):
+            label += " Shot"
+        return label
+
+    def _movement_phrase(self, movement: Optional[str]) -> Optional[str]:
+        if not movement:
+            return None
+        normalized = movement.lower().replace("_", " ").strip()
+        if not normalized or normalized == "static":
+            return None
+        return MOVEMENT_PHRASES.get(normalized, f"{normalized} move")
+
+    def _is_montage_shot(self, scene: Scene, shot: Shot) -> bool:
+        text_parts = [scene.description, shot.description, shot.action]
+        combined = " ".join(filter(None, text_parts)).lower()
+        if "montage" in combined:
+            return True
+        if shot.duration is not None and shot.duration <= 0.75 and "clips" in combined:
+            return True
+        return False
+
+    def _extract_montage_items(self, scene: Scene, shot: Shot) -> list[str]:
+        candidates: list[str] = []
+        text_sources = [scene.description, shot.description, shot.action]
+        for text in filter(None, text_sources):
+            candidates.extend(self._parse_montage_clause(text))
+            candidates.extend(self._extract_parenthetical_items(text))
+
+        if not candidates and scene.physical_world:
+            objects = scene.physical_world.get("objects") if isinstance(scene.physical_world, dict) else None
+            if isinstance(objects, list):
+                candidates.extend(objects)
+
+        return self._dedupe_clip_labels(candidates)
+
+    def _parse_montage_clause(self, text: str) -> list[str]:
+        matches: list[str] = []
+        pattern = re.compile(r"(?:clips? include|including|includes|features|featuring|showcasing)\s+([^\.]+)", re.IGNORECASE)
+        for match in pattern.finditer(text):
+            clause = match.group(1)
+            clause = re.split(r"(?i)(?:each clip|each moment|each shot)", clause)[0]
+            clause = clause.replace(" and ", ", ")
+            parts = [part.strip() for part in clause.split(",") if part.strip()]
+            matches.extend(parts)
+        return matches
+
+    def _extract_parenthetical_items(self, text: str) -> list[str]:
+        items: list[str] = []
+        for match in re.finditer(r"\(([^\)]+)\)", text):
+            segment = match.group(1)
+            if any(sep in segment for sep in [",", "/", ";"]):
+                segment = segment.replace(" and ", ", ")
+                items.extend([part.strip() for part in segment.split(",") if part.strip()])
+        return items
+
+    def _clean_clip_label(self, label: str) -> Optional[str]:
+        cleaned = re.sub(r"\s+", " ", str(label)).strip().strip(".;:")
+        return cleaned or None
+
+    def _dedupe_clip_labels(self, labels: list[str]) -> list[str]:
+        result: list[str] = []
+        seen: set[str] = set()
+        for label in labels:
+            cleaned = self._clean_clip_label(label)
+            if not cleaned:
+                continue
+            key = re.sub(r"^(a|an|the)\s+", "", cleaned, flags=re.IGNORECASE).lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(cleaned)
+        return result
+
+    def _clip_phrases(self, clip_label: Optional[str], fallback_action: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
+        if not clip_label:
+            return None, None
+        cleaned = self._clean_clip_label(clip_label)
+        if not cleaned:
+            return None, None
+        subject = cleaned[0].upper() + cleaned[1:] if cleaned else cleaned
+        if fallback_action and "montage" not in fallback_action.lower():
+            action = fallback_action
+        else:
+            action = f"{subject} captured at peak intensity"
+        return subject, action
+
+    def _create_montage_clip_description(
+        self,
+        shot: Shot,
+        scene: Scene,
+        breakdown: Optional[CameraShotBreakdown],
+        clip_label: str,
+        clip_index: int,
+    ) -> str:
+        timestamp = ""
+        if self.config.include_timestamps:
+            timestamp = f"[{format_timestamp(shot.start_time)}-{format_timestamp(shot.end_time)}] "
+
+        label = self._clean_clip_label(clip_label) or clip_label
+        camera_summary = self._compose_camera_prompt(shot, breakdown)
+        clip_tag = f"Clip {clip_index:02d}"
+        if camera_summary:
+            return f"{timestamp}Shot {shot.shot_index} {clip_tag}: {label} ({camera_summary})"
+        return f"{timestamp}Shot {shot.shot_index} {clip_tag}: {label}"
     
     def _create_shot_description(
         self,
@@ -1065,14 +1279,22 @@ class PromptGenerationAgent:
                 cinematography_bits.append(breakdown.camera_shot_type)
             if breakdown.camera_angle:
                 cinematography_bits.append(f"{breakdown.camera_angle} angle")
-            if breakdown.camera_motion and breakdown.camera_motion.lower() != "static":
-                cinematography_bits.append(f"{breakdown.camera_motion} camera")
+            if breakdown.camera_height:
+                cinematography_bits.append(breakdown.camera_height)
+            if breakdown.camera_distance:
+                cinematography_bits.append(breakdown.camera_distance)
+            movement_phrase = self._movement_phrase(breakdown.camera_motion)
+            if movement_phrase:
+                cinematography_bits.append(movement_phrase)
         else:
-            if shot.shot_type:
-                cinematography_bits.append(str(shot.shot_type))
-            if shot.camera_movement:
-                cinematography_bits.append(f"camera {shot.camera_movement}")
+            shot_type_str = self._humanize_shot_type(shot.shot_type)
+            if shot_type_str:
+                cinematography_bits.append(shot_type_str)
+            movement_phrase = self._movement_phrase(shot.camera_movement)
+            if movement_phrase:
+                cinematography_bits.append(movement_phrase)
 
+        cinematography_bits = self._unique_parts(cinematography_bits)
         if cinematography_bits:
             core += f" ({', '.join(cinematography_bits)})"
 

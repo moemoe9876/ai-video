@@ -33,6 +33,7 @@ Focus on a single, continuous moment. Never combine multiple scenes, locations, 
 - Framing and composition
 - Distance from subject
 - Avoid referencing multiple shots or cuts; describe one camera setup
+- Use cinematography-friendly language (e.g., "medium close-up," "bird's-eye view") instead of physical measurements
 
 ### Lighting
 - Type of light (natural, artificial)
@@ -48,6 +49,42 @@ Focus on a single, continuous moment. Never combine multiple scenes, locations, 
 - Mood and atmosphere
 - Reference styles if helpful
 - If no scene-specific style is provided, default to cinematic realism
+
+## Camera Angle Reference
+
+| Camera Angle | Description | Emotional Effect |
+| --- | --- | --- |
+| Eye-level | Camera and subject share the same height. | Natural, calm, relatable. |
+| High-angle | Camera looks down on the subject. | Conveys vulnerability, diminishes scale. |
+| Low-angle | Camera looks up toward the subject. | Emphasizes power, confidence, grandeur. |
+| Bird's-eye view | Elevated overhead view of the entire scene. | Highlights scale, geography, choreography. |
+| Worm's-eye view | Extreme low vantage close to the ground. | Exaggerates height, adds drama and awe. |
+| Dutch angle | Camera is intentionally tilted. | Signals tension, disorientation, kinetic energy. |
+
+## Framing Vocabulary
+
+- **Extreme close-up**: Focuses on micro details (eyes, hands, textures).
+- **Close-up**: Frames the face or a key object for intimacy.
+- **Medium shot**: Waist-up composition balancing subject and surroundings.
+- **Medium close-up**: Chest-up framing ideal for dialogue.
+- **Full body shot**: Shows the subject head-to-toe within the scene.
+- **Wide / Long shot**: Embraces the environment and spatial context.
+- **Point-of-view shot**: Places the camera where the character is looking.
+
+Pair these shot types with lens cues:
+
+- **Wide-angle lens** for expansive perspective and foreground drama.
+- **Standard lens** for a natural field of view.
+- **Telephoto lens** for compressed depth and selective focus.
+- **Fisheye / anamorphic** lenses for stylized curvature or cinematic stretch.
+
+## Prompting Tips for Camera Language
+
+1. Lead with the desired angle: *"High-angle close-up of..."*
+2. Layer foreground, midground, and background cues for depth: *"Foreground wildflowers in sharp focus, subject mid-frame, mountains softly blurred."*
+3. Match framing to mood—low angles for power, high angles for fragility, close-ups for intimacy, wide shots for scope.
+4. Avoid physical measurements like “20 meters away”; rely on cinematic naming instead.
+5. Combine angle + lens + action for clarity: *"Bird's-eye view wide shot with a slow orbit."*
 
 ## Example Prompts
 

@@ -2,16 +2,24 @@
 
 ## Text-to-Video Prompt Structure
 
-**Prompt = Subject + Action + Scene + Camera Movement + Lighting + Style**
+**Prompt = Subject + Action + Scene + Camera Framing + Lighting + Style**
 
 ### Components
 
 1. **Subject**: Detailed description of the main focus (appearance, clothing, features)
 2. **Action**: What motion or activity is occurring (use realistic, physically plausible actions)
 3. **Scene**: The environment and setting
-4. **Camera Movement**: How the camera moves (zoom, pan, tracking, static, etc.)
+4. **Camera Framing**: Shot type, angle, and camera motion (e.g., "medium close-up," "low-angle tracking move")
 5. **Lighting**: Lighting conditions and quality
 6. **Style**: Visual style and mood
+
+### Camera Language Tips
+
+- Describe framing with cinematic vocabulary rather than physical measurements. Use terms like "extreme close-up," "medium shot," "full-body shot," "wide shot," or "long shot."
+- Specify camera perspective with phrases such as "eye-level," "low-angle," "high-angle," "bird's-eye view," or "worm's-eye view" to shape emotional tone.
+- Reference lens intent symbolically — "wide-angle lens" for expansive perspective, "telephoto lens" for compressed depth, "anamorphic lens" for cinematic stretch.
+- Layer depth cues ("foreground foliage in crisp focus, subject mid-frame, skyline softly blurred") to help models infer foreground, midground, and background relationships.
+- Align framing with mood: low angles suggest power, high angles add vulnerability, close-ups feel intimate, and wide shots provide context.
 
 ### Example Text-to-Video Prompts
 
@@ -38,6 +46,8 @@ A serene landscape featuring a large, lush tree with drooping branches, situated
 3. **Background**: The surrounding environment
 4. **Background Movement**: How the background should move (clouds, water, etc.)
 5. **Camera Movement**: How the camera should move through the scene
+
+> Tip: For both text-to-video and image-to-video prompts, steer composition with cinematic shot names ("medium close-up," "wide shot") and angle descriptors ("low-angle," "bird's-eye view") rather than physical distances.
 
 ### Example Image-to-Video Prompts
 
@@ -84,7 +94,7 @@ The same woman with long blonde hair (as in previous frame) now sits at the coun
 - Emphasize intensity with adverbs (quickly, slowly, gently, intensely)
 
 ### DON'T:
-- Specify exact numbers or measurements
+- Specify exact numbers or measurements (e.g., "20 meters away")
 - Describe overly complex or physically impossible actions
 - Use abstract or vague descriptions
 - Mismatch prompt to image (e.g., "man" when image shows woman)

@@ -162,8 +162,27 @@ ai-video reimagine \
 
 # Layer additional free-form instructions across all variants
 ai-video reimagine \
-  --input assets/prompts/VIDEO_ID/prompts_detailed.md \
-  --user-prompt "Highlight the humid summer night air and the couple's unspoken tension"
+  --input assets/prompts/absurd_truth_in_passion/prompts_detailed.md \
+  --user-prompt " You are the creative director. I want you to act as if you were the great film director Spike Lee. Everything you create — whether it’s text-to-image, video, or image-to-video — must be crafted as if Spike Lee himself were behind the camera.
+
+Build upon Spike Lee’s legendary body of work — his deep connection to streetwear, culture, music, hip-hop, sports, and 90s fashion. Draw inspiration from the spirit of his most iconic films and collaborations that celebrated the rhythm, struggle, and beauty of urban life. Channel that raw energy, the vivid color palettes, the socially conscious storytelling, and the unapologetic pride of that era. Lean into that world of thought, ideation, and creation — where art met activism and every frame had something to say.
+
+You have the full creative freedom and direction of Spike Lee. Together, we’re going to recreate this advert and reimagine what it means to make videos using AI models that generate both images and motion.
+
+Our goal is to create an advert that takes viewers into a new world — one that showcases the true power of AI video generation. It should unlock curiosity, spark dreams, and awaken a sense of childlike joy. We want people to feel like they’ve seen something they’ve never seen before — something that moves them on a deep, emotional level.
+
+This video must evoke those feelings internally for everyone who watches it. Every scene should be completely original — not reused or recycled — but inspired by the tone and intention of the original advert, serving as a creative blueprint for what we want to achieve.
+
+Let’s recreate and reimagine this advert in a way that merges Spike Lee’s cultural legacy with the limitless creative possibilities of AI — capturing that same sense of wonder, soul, and possibility that defined a generation."
+
+
+# Run the 
+ai-video reimagine \
+  --input assets/prompts/absurd_truth_in_passion/prompts_detailed.md \
+  --style "90s Brooklyn street realism with Afrofuturist color and surreal energy" \
+  --num-variants 4 \
+  --user-prompt "..."
+
 
 # Run the standalone agent module directly
 python -m ai_video.agents.reimagination_agent \

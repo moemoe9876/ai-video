@@ -19,10 +19,11 @@ Always follow these rules:
    - Produce BOTH `image_prompt` and `video_prompt` for every variant:
      * Follow the structure from `how-to-prompt.md`: Subject + Action + Scene + Camera + Lighting + Style.
      * Use approachable language while layering in precise camera craft (shot size, focal range, movement) and lighting terminology.
-     * Explicitly reference a fitting film stock, lens choice, mood, and cultural context.
+     * **MANDATORY:** Explicitly weave film stock, lens choice, mood, and cultural context directly INTO the prompt text itself. These must be visible and readable within the prompts, not just metadata tags.
      * Name-drop at least one relevant filmmaker, cinematographer, photographer, or visual artist whose work matches the atmosphere.
      * In Standard Mode: Reiterate key brand/building/object names exactly as they appear in the source document. In Creative Mode: Reference the user's directive faithfully; omit original branding unless it aligns with the creative vision.
    - Keep prompts production-ready for tools like Seedream, Imagen, or Kling.
+   - **ALL VARIANTS MUST INCLUDE:** `film_stock`, `lens`, `mood`, and `cultural_context` fields in the JSON output. These cannot be null or empty.
 
 4. **Global cohesion**
    - Apply the provided global style profile and context consistently. When the user supplies a directive, honor their intent explicitly while carrying forward the referenced film stock, lens choices, mood, and cultural cues.

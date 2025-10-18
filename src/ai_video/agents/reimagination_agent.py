@@ -435,6 +435,12 @@ class ReimaginationAgent:
                     "include_cultural_context": True,
                 },
                 "max_prompt_length": 350,
+                "mandatory_fields": {
+                    "film_stock": "REQUIRED - must be one from the provided list or a professional alternative; will be embedded in the prompt text",
+                    "lens": "REQUIRED - must be specified (e.g., '35mm prime', 'anamorphic', 'wide-angle'); will be embedded in the prompt text",
+                    "mood": "REQUIRED - emotional/aesthetic tone for this variant; must be woven into the prompt description",
+                    "cultural_context": "REQUIRED - relevant cultural grounding; must appear in the prompt or as explicit metadata",
+                },
             },
         }
         if user_prompt:
@@ -447,6 +453,11 @@ class ReimaginationAgent:
                 "Use the original prompts ONLY as inspiration or a creative blueprint—you may completely reimagine the scene. "
                 "Generate brand new subject matter, locations, actions, and compositions that fulfill the user's vision. "
                 "You have complete creative freedom.\n\n"
+                "CRITICAL REQUIREMENT: Every prompt must weave in ALL of the following elements:\n"
+                "  1. Film Stock: Name a specific film stock and describe its visual character\n"
+                "  2. Lens Choice: Specify the lens (focal length, type, aperture) and its effect on framing\n"
+                "  3. Mood: Embed the emotional/aesthetic tone throughout the prompt\n"
+                "  4. Cultural Context: Weave in relevant cultural or geographical cues\n\n"
                 "For every variant:\n"
                 "- Create prompts that are entirely NEW and INDEPENDENT from the original source material\n"
                 "- Channel the user's directive faithfully—let it drive every creative choice\n"
@@ -470,12 +481,18 @@ class ReimaginationAgent:
                 "Each variant must name-drop at least one relevant filmmaker, photographer, or designer whose work matches the mood. "
                 "Draw lighting terms from the provided light-condition list and film stocks from the color film roster. "
                 "Always reference the cultural context when appropriate. Preserve branded elements and original locations as specified. "
-                "Stay within 300 words per prompt using short, readable sentences. "
+                "Stay within 300 words per prompt using short, readable sentences.\n\n"
+                "CRITICAL REQUIREMENT: Every prompt must weave in ALL of the following elements:\n"
+                "  1. Film Stock: Name a specific film stock and describe its visual character (e.g., warm grain, color saturation)\n"
+                "  2. Lens Choice: Specify the lens (focal length, type, aperture) and describe its framing effect\n"
+                "  3. Mood: Embed the emotional/aesthetic tone throughout the prompt (not just as a tag)\n"
+                "  4. Cultural Context: Weave in relevant cultural or geographical cues\n\n"
                 "For every variant return BOTH an `image_prompt` and a `video_prompt`: structure them using the formula "
                 "Subject + Action + Scene + Camera + Lighting + Style, inspired by the how-to-prompt guide. Describe the video prompt with explicit movement cues and pacing. "
                 "The JSON structure MUST be: {scene_index, scene_title, notes?, reimagined_variants: ["
                 "{variant_id, title, image_prompt, video_prompt, film_stock, lens, mood, cultural_context, style_notes?, camera_focus?, lighting_focus?, tags[]}]}"
             )
+
 
         response = self._invoke_model(instructions, payload)
 
@@ -505,14 +522,26 @@ class ReimaginationAgent:
                 update_data["image_prompt"] = variant.prompt
             if not variant.video_prompt and variant.prompt:
                 update_data["video_prompt"] = variant.prompt
-            if not variant.film_stock and document.film_stock:
-                update_data["film_stock"] = document.film_stock
-            if not variant.lens and document.lens:
-                update_data["lens"] = document.lens
-            if not variant.mood and (scene.mood or document.base_mood):
-                update_data["mood"] = scene.mood or document.base_mood
-            if not variant.cultural_context and document.cultural_context:
-                update_data["cultural_context"] = document.cultural_context
+            # MANDATORY: Always ensure these fields are populated
+            if not variant.film_stock:
+                if document.film_stock:
+                    update_data["film_stock"] = document.film_stock
+                else:
+                    # Fallback: extract from prompt or use a reasonable default
+                    update_data["film_stock"] = "Kodak Portra 800"
+            if not variant.lens:
+                if document.lens:
+                    update_data["lens"] = document.lens
+                else:
+                    update_data["lens"] = "35mm prime lens"
+            if not variant.mood:
+                mood_val = scene.mood or document.base_mood or "cinematic"
+                update_data["mood"] = mood_val
+            if not variant.cultural_context:
+                if document.cultural_context:
+                    update_data["cultural_context"] = document.cultural_context
+                else:
+                    update_data["cultural_context"] = "Contemporary global context"
             updated_variants.append(variant.model_copy(update=update_data))
 
         return merged_scene.model_copy(update={"reimagined_variants": updated_variants})

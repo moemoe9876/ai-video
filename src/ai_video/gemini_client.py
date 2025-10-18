@@ -30,6 +30,25 @@ class GeminiVisionClient:
         self.max_retries = settings.gemini.max_retries
         
         logger.info(f"Initialized Gemini client with model: {self.model}")
+
+    def chat(self, prompt: str, response_format: str = "text"):
+        """Send a text-only prompt to Gemini and return the parsed response."""
+        config = None
+        if response_format == "json":
+            config = types.GenerateContentConfig(
+                response_mime_type="application/json"
+            )
+
+        response = self.client.models.generate_content(
+            model=self.model,
+            contents=types.Content(parts=[types.Part(text=prompt)]),
+            config=config
+        )
+
+        if response_format == "json":
+            return self._parse_response(response, response_format)
+
+        return response.text
     
     def analyze_video(
         self,

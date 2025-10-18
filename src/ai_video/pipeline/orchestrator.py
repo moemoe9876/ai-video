@@ -7,6 +7,7 @@ import json
 
 from ..agents.video_analysis import VideoAnalysisAgent
 from ..agents.prompt_generation import PromptGenerationAgent
+from ..agents.prompt_from_user import PromptGenerationFromUserInputAgent
 from ..models import VideoReport
 from ..paths import path_builder
 from ..storage import write_json, file_exists
@@ -22,6 +23,7 @@ class PipelineOrchestrator:
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.analysis_agent = VideoAnalysisAgent(api_key=api_key, model=model)
         self.prompt_agent = PromptGenerationAgent()
+        self.user_prompt_agent = PromptGenerationFromUserInputAgent(api_key=api_key, model=model)
         self.config = settings.pipeline
     
     def run_all(
@@ -195,3 +197,86 @@ class PipelineOrchestrator:
             skip_analysis=skip_analysis,
             skip_prompts=skip_prompts
         )
+    
+    def run_from_user_prompt(
+        self,
+        user_prompt: str,
+        video_id: Optional[str] = None,
+        run_id: Optional[str] = None,
+        skip_prompts: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Run pipeline from user prompt: generate report and prompts.
+        
+        Args:
+            user_prompt: User's natural language prompt with aesthetics, style, duration
+            video_id: Optional custom video ID
+            run_id: Optional run ID
+            skip_prompts: Skip prompt generation step
+        
+        Returns:
+            Manifest dictionary with paths and metadata
+        """
+        if run_id is None:
+            run_id = get_run_id()
+        
+        with LogContext(logger, f"Pipeline from user prompt run: {run_id}"):
+            manifest = {
+                "run_id": run_id,
+                "user_prompt": user_prompt,
+                "video_id": video_id,
+                "started_at": datetime.now().isoformat(),
+                "config": {
+                    "skip_prompts": skip_prompts,
+                },
+                "artifacts": {},
+                "status": "running",
+                "errors": []
+            }
+            
+            try:
+                # Step 1: Generate report from user prompt
+                report = self._run_user_prompt_generation(user_prompt, video_id)
+                manifest["video_id"] = report.video_id
+                manifest["artifacts"]["report"] = str(
+                    path_builder.get_report_path(report.video_id)
+                )
+                
+                # Step 2: Generate prompts
+                if not skip_prompts:
+                    bundles = self._run_prompt_generation(report)
+                    manifest["artifacts"]["prompt_bundles"] = [
+                        str(path_builder.get_scene_prompt_path(report.video_id, b.scene_index))
+                        for b in bundles
+                    ]
+                    manifest["artifacts"]["num_scenes"] = len(bundles)
+                
+                manifest["status"] = "completed"
+                manifest["completed_at"] = datetime.now().isoformat()
+                
+            except Exception as e:
+                logger.error(f"Pipeline failed: {e}", exc_info=True)
+                manifest["status"] = "failed"
+                manifest["errors"].append(str(e))
+                manifest["failed_at"] = datetime.now().isoformat()
+                raise
+            
+            finally:
+                manifest_path = path_builder.get_run_manifest_path(run_id)
+                write_json(manifest, manifest_path)
+                logger.info(f"Manifest saved: {manifest_path}")
+            
+            return manifest
+    
+    def _run_user_prompt_generation(self, user_prompt: str, video_id: Optional[str]) -> VideoReport:
+        """Generate VideoReport from user prompt."""
+        logger.info("Step 1: Generating report from user prompt...")
+        
+        report = self.user_prompt_agent.generate_report_from_prompt(
+            user_prompt=user_prompt,
+            video_id=video_id,
+            save_report=True
+        )
+        
+        logger.info(f"Report generation completed: {len(report.scenes)} scenes created")
+        return report

@@ -34,6 +34,14 @@ prompts:
   include_style: true
   max_prompt_length: 500
 
+# Prompt generation from user input
+prompt_from_user:
+  default_scene_duration: 6.0  # Average scene duration in seconds
+  min_scene_duration: 3.0
+  max_scene_duration: 15.0
+  max_scenes: 20
+  default_fps: 24.0
+
 # Pipeline
 pipeline:
   checkpoint_enabled: true

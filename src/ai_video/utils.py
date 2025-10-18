@@ -7,14 +7,20 @@ from datetime import datetime
 import re
 
 def generate_video_id(source: str) -> str:
-    """Generate a unique video ID from source."""
+    """Generate a unique video ID from a file path, URL, or free-form text."""
     if source.startswith('http'):
         hash_base = source
     else:
         path = Path(source)
-        hash_base = f"{path.name}_{path.stat().st_mtime}"
-    
-    hash_obj = hashlib.md5(hash_base.encode())
+        try:
+            if path.exists():
+                hash_base = f"{path.name}_{path.stat().st_mtime}"
+            else:
+                hash_base = source
+        except (OSError, ValueError):
+            hash_base = source
+
+    hash_obj = hashlib.md5(hash_base.encode("utf-8"))
     return hash_obj.hexdigest()[:12]
 
 def parse_timestamp(timestamp: str) -> float:

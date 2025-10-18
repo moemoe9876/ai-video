@@ -206,6 +206,75 @@ def run_all(
 
 
 @app.command()
+def generate_from_prompt(
+    prompt: str = typer.Option(..., "--prompt", "-p", help="User's detailed prompt with aesthetics, style, duration, and themes"),
+    video_id: Optional[str] = typer.Option(None, "--id", help="Custom video ID"),
+    run_id: Optional[str] = typer.Option(None, "--run-id", help="Custom run ID"),
+    model: Optional[str] = typer.Option(None, "--model", help="Gemini model to use"),
+    export: bool = typer.Option(True, "--export/--no-export", help="Export prompts to all formats"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
+):
+    """Generate prompts from a user's natural language prompt (no video needed)."""
+    logger = setup_logger("ai_video.cli", level="DEBUG" if verbose else "INFO")
+    
+    try:
+        console.print(f"[bold cyan]Generating from user prompt:[/bold cyan]")
+        console.print(f"[dim]{prompt}[/dim]\n")
+        
+        orchestrator = PipelineOrchestrator(model=model)
+        manifest = orchestrator.run_from_user_prompt(
+            user_prompt=prompt,
+            video_id=video_id,
+            run_id=run_id
+        )
+        
+        console.print(f"\n[bold green]✓ Report generation complete![/bold green]")
+        console.print(f"[cyan]Run ID:[/cyan] {manifest['run_id']}")
+        console.print(f"[cyan]Video ID:[/cyan] {manifest['video_id']}")
+        console.print(f"[cyan]Status:[/cyan] {manifest['status']}")
+        
+        if 'num_scenes' in manifest.get('artifacts', {}):
+            console.print(f"[cyan]Scenes generated:[/cyan] {manifest['artifacts']['num_scenes']}")
+        
+        if manifest.get('artifacts'):
+            console.print(f"\n[bold]Artifacts:[/bold]")
+            for key, value in manifest['artifacts'].items():
+                if key != 'prompt_bundles':
+                    console.print(f"  {key}: {value}")
+        
+        if export and manifest['status'] == 'completed':
+            console.print(f"\n[bold cyan]Exporting prompts...[/bold cyan]")
+            
+            report_path = Path(manifest['artifacts']['report'])
+            report = load_model(report_path, VideoReport)
+            
+            export_paths = PromptExporter.export_all_formats(
+                video_id=manifest['video_id'],
+                report=report
+            )
+            
+            # Generate detailed markdown
+            prompts_dir = path_builder.get_video_prompts_dir(manifest['video_id'])
+            markdown_path = prompts_dir / "prompts_detailed.md"
+            console.print(f"[bold cyan]Generating detailed markdown...[/bold cyan]")
+            generate_detailed_markdown(report, markdown_path)
+            export_paths['detailed_markdown'] = str(markdown_path)
+            
+            console.print(f"[bold green]✓ Export complete![/bold green]")
+            for format_name, path in export_paths.items():
+                console.print(f"  {format_name}: {path}")
+    
+    except ValidationError as e:
+        console.print(f"[bold red]✗ Validation error:[/bold red] {e}")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        console.print(f"[bold red]✗ Error:[/bold red] {e}")
+        if verbose:
+            import traceback
+            console.print(traceback.format_exc())
+        raise typer.Exit(code=1)
+
+@app.command()
 def reimagine(
     input: str = typer.Option(..., "--input", "-i", help="Path to prompts_detailed.md"),
     style: Optional[str] = typer.Option(None, "--style", "-s", help="Global style directive"),

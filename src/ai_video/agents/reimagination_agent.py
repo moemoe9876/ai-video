@@ -453,6 +453,7 @@ class ReimaginationAgent:
                 "Use the original prompts ONLY as inspiration or a creative blueprint—you may completely reimagine the scene. "
                 "Generate brand new subject matter, locations, actions, and compositions that fulfill the user's vision. "
                 "You have complete creative freedom.\n\n"
+                "CONTENT SAFETY: Keep every concept within PG-13 territory. Do NOT include explicit sexual content, graphic violence, hate, illegal activity, or anything likely to trigger safety blocks. Focus on celebratory, culturally respectful storytelling.\n\n"
                 "CRITICAL REQUIREMENT: Every prompt must weave in ALL of the following elements:\n"
                 "  1. Film Stock: Name a specific film stock and describe its visual character\n"
                 "  2. Lens Choice: Specify the lens (focal length, type, aperture) and its effect on framing\n"
@@ -497,7 +498,8 @@ class ReimaginationAgent:
         response = self._invoke_model(instructions, payload)
 
         try:
-            reimagined_scene = ReimaginedScene(**response)
+            normalized_scene = self._normalize_scene_payload(response)
+            reimagined_scene = ReimaginedScene(**normalized_scene)
         except PydanticValidationError as exc:
             logger.error("Invalid scene response: %s", exc)
             raise ValidationError("Model returned malformed scene data") from exc
@@ -584,7 +586,8 @@ class ReimaginationAgent:
         response = self._invoke_model(instructions, payload)
 
         try:
-            return GlobalStyleProfile(**response)
+            normalized = self._normalize_style_profile_payload(response)
+            return GlobalStyleProfile(**normalized)
         except PydanticValidationError as exc:
             logger.error("Invalid style profile: %s", exc)
             raise ValidationError("Model returned malformed style profile") from exc
@@ -640,25 +643,321 @@ class ReimaginationAgent:
                     config=config,
                 )
                 return self._extract_text(response)
+            except ValidationError as exc:
+                last_error = exc
+                logger.warning(
+                    "Model call failed (attempt %s/%s): %s",
+                    attempt,
+                    self.max_retries,
+                    exc,
+                )
+                if "blocked" in str(exc).lower():
+                    raise
             except Exception as exc:  # pragma: no cover - network errors
                 last_error = exc
-                logger.warning("Model call failed (attempt %s/%s): %s", attempt, self.max_retries, exc)
-        raise ValidationError(f"Failed to generate content after {self.max_retries} attempts") from last_error
+                logger.warning(
+                    "Model call failed (attempt %s/%s): %s",
+                    attempt,
+                    self.max_retries,
+                    exc,
+                )
+        detail = f": {last_error}" if last_error else ""
+        raise ValidationError(
+            f"Failed to generate content after {self.max_retries} attempts{detail}"
+        ) from last_error
 
     def _extract_text(self, response: Any) -> str:
-        """Extract text content from Gemini response."""
-        if hasattr(response, "text") and response.text:
-            return response.text
-        for candidate in getattr(response, "candidates", []) or []:
+        """Extract text or structured JSON content from Gemini response."""
+        for attr in ("text", "output_text"):
+            value = getattr(response, attr, None)
+            if value:
+                return value
+
+        candidates = getattr(response, "candidates", None) or []
+        blocked_reasons: List[str] = []
+
+        for candidate in candidates:
+            finish_reason = getattr(candidate, "finish_reason", None)
+            if finish_reason:
+                finish_reason_str = str(finish_reason).upper()
+                if "SAFETY" in finish_reason_str:
+                    blocked_reasons.append("safety")
+                elif "RECITATION" in finish_reason_str:
+                    blocked_reasons.append("recitation")
+
             content = getattr(candidate, "content", None)
             parts = getattr(content, "parts", None) if content else None
             if not parts:
                 continue
+
             for part in parts:
-                text = getattr(part, "text", None)
-                if text:
-                    return text
+                text_value = getattr(part, "text", None)
+                if text_value:
+                    return text_value
+
+                structured_value = self._extract_structured_part(part)
+                if structured_value:
+                    return structured_value
+
+        if blocked_reasons:
+            reason = ", ".join(dict.fromkeys(blocked_reasons))
+            raise ValidationError(f"Model response blocked due to {reason}")
+
+        feedback = getattr(response, "prompt_feedback", None)
+        block_reason = getattr(feedback, "block_reason", None)
+        if block_reason:
+            raise ValidationError(f"Model response blocked: {block_reason}")
+
         raise ValidationError("Model returned empty response")
+
+    def _extract_structured_part(self, part: Any) -> Optional[str]:
+        """Extract JSON content from structured Gemini response parts."""
+        function_call = getattr(part, "function_call", None)
+        if function_call:
+            arguments = (
+                getattr(function_call, "args", None)
+                or getattr(function_call, "arguments", None)
+            )
+            if arguments:
+                if isinstance(arguments, str):
+                    return arguments
+                if hasattr(arguments, "to_dict"):
+                    return json.dumps(arguments.to_dict())
+                if hasattr(arguments, "model_dump"):
+                    return json.dumps(arguments.model_dump())
+                if isinstance(arguments, dict):
+                    return json.dumps(arguments)
+                if hasattr(arguments, "items"):
+                    return json.dumps(dict(arguments))
+                return json.dumps(arguments)
+
+        inline_data = getattr(part, "inline_data", None)
+        if inline_data:
+            data = getattr(inline_data, "data", None)
+            if data:
+                if isinstance(data, bytes):
+                    try:
+                        return data.decode("utf-8")
+                    except UnicodeDecodeError:
+                        pass
+                return data
+
+        json_value = getattr(part, "json", None)
+        if json_value:
+            if isinstance(json_value, str):
+                return json_value
+            if hasattr(json_value, "model_dump"):
+                return json.dumps(json_value.model_dump())
+            if hasattr(json_value, "to_dict"):
+                return json.dumps(json_value.to_dict())
+            if isinstance(json_value, dict):
+                return json.dumps(json_value)
+
+        return None
+
+    def _normalize_scene_payload(self, payload: Any) -> Dict[str, Any]:
+        """Coerce Gemini output into the expected ReimaginedScene schema."""
+        mapping = self._coerce_mapping(payload)
+
+        # Support alternative key names the model might return
+        if "variants" in mapping and "reimagined_variants" not in mapping:
+            mapping["reimagined_variants"] = mapping.pop("variants")
+
+        mapping.setdefault("scene_index", 0)
+        mapping.setdefault("reimagined_variants", [])
+        mapping["reimagined_variants"] = self._normalize_variants(mapping["reimagined_variants"])
+
+        # Ensure scalar fields are basic Python types
+        for field in ("scene_index", "scene_title", "location", "original_description", "original_prompt", "mood", "notes"):
+            if field in mapping:
+                mapping[field] = self._coerce_style_text(mapping[field]) if field != "scene_index" else self._coerce_scene_index(mapping[field])
+
+        return mapping
+
+    def _coerce_scene_index(self, value: Any) -> int:
+        """Normalize scene_index to an integer."""
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, (int, float)):
+            return int(value)
+        if isinstance(value, str):
+            digits = re.findall(r"\d+", value)
+            if digits:
+                return int(digits[0])
+            return 0
+        return 0
+
+    def _normalize_variants(self, variants: Any) -> List[Dict[str, Any]]:
+        """Normalize variant entries into dictionaries acceptable by Pydantic."""
+        if variants is None:
+            return []
+
+        if isinstance(variants, dict):
+            normalized_list: List[Dict[str, Any]] = []
+            for key, value in variants.items():
+                variant_mapping = self._coerce_mapping(value)
+                variant_mapping.setdefault("variant_id", self._coerce_style_text(key) or str(len(normalized_list) + 1))
+                normalized_list.append(variant_mapping)
+            return normalized_list
+
+        if isinstance(variants, (list, tuple, set)):
+            normalized_list = []
+            for idx, item in enumerate(list(variants), start=1):
+                if isinstance(item, (list, tuple)) and not isinstance(item, str):
+                    item = self._coerce_mapping(item)
+                if isinstance(item, dict):
+                    variant_mapping = self._coerce_mapping(item)
+                else:
+                    text = self._coerce_style_text(item)
+                    if not text:
+                        continue
+                    variant_mapping = {"title": text, "prompt": text}
+                variant_mapping.setdefault("variant_id", str(idx))
+                normalized_list.append(variant_mapping)
+            return normalized_list
+
+        text = self._coerce_style_text(variants)
+        if text:
+            return [{"variant_id": "1", "title": text, "prompt": text}]
+
+        return []
+
+    def _coerce_mapping(self, value: Any) -> Dict[str, Any]:
+        """Coerce nested structures into a dictionary."""
+        if isinstance(value, dict):
+            return {str(key): val for key, val in value.items()}
+
+        if isinstance(value, (list, tuple)):
+            items = list(value)
+            if not items:
+                return {}
+            if len(items) == 1:
+                return self._coerce_mapping(items[0])
+            if all(isinstance(item, dict) for item in items):
+                merged: Dict[str, Any] = {}
+                for item in items:
+                    merged.update(self._coerce_mapping(item))
+                return merged
+            if all(isinstance(item, (list, tuple)) and len(item) == 2 for item in items):
+                return {str(key): val for key, val in items}
+
+        raise ValidationError("Model returned malformed scene data")
+
+    def _normalize_style_profile_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Coerce Gemini output into the expected style profile schema."""
+        if not isinstance(payload, dict):
+            raise ValidationError("Model returned malformed style profile")
+
+        normalized: Dict[str, Any] = {}
+        normalized["name"] = self._coerce_style_text(payload.get("name"))
+        normalized["description"] = self._coerce_style_text(payload.get("description"))
+        normalized["palette"] = self._coerce_style_text(payload.get("palette"))
+        normalized["lighting"] = self._coerce_style_text(payload.get("lighting"))
+        normalized["camera_direction"] = self._coerce_style_text(payload.get("camera_direction"))
+        normalized["keywords"] = self._coerce_keywords(payload.get("keywords"))
+
+        allowed_keys = {
+            "name",
+            "description",
+            "keywords",
+            "palette",
+            "lighting",
+            "camera_direction",
+        }
+        extras = {key: value for key, value in payload.items() if key not in allowed_keys}
+        normalized.update(extras)
+
+        return normalized
+
+    def _coerce_style_text(self, value: Any) -> Optional[str]:
+        """Convert structured responses into succinct text fields."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            stripped = value.strip()
+            return stripped or None
+        if isinstance(value, (int, float)):
+            return str(value)
+        if isinstance(value, (list, tuple, set)):
+            flattened: List[str] = []
+            for item in value:
+                coerced = self._coerce_style_text(item)
+                if coerced:
+                    flattened.append(coerced)
+            if not flattened:
+                return None
+            ordered: List[str] = []
+            seen: set[str] = set()
+            for part in flattened:
+                key = part.lower()
+                if key not in seen:
+                    seen.add(key)
+                    ordered.append(part)
+            return ", ".join(ordered)
+        if isinstance(value, dict):
+            components: List[str] = []
+            for key in ("name", "title", "label", "description", "summary", "statement", "tagline"):
+                text = value.get(key)
+                coerced = self._coerce_style_text(text)
+                if coerced:
+                    components.append(coerced)
+            for key in ("palette", "lighting", "camera", "camera_direction", "style", "mood"):
+                text = value.get(key)
+                coerced = self._coerce_style_text(text)
+                if coerced:
+                    components.append(f"{key.replace('_', ' ')}: {coerced}")
+            for key in ("keywords", "colors", "swatches", "tones", "accents"):
+                items = value.get(key)
+                keyword_list = self._coerce_keywords(items)
+                if keyword_list:
+                    components.append(f"{key.replace('_', ' ')}: {', '.join(keyword_list)}")
+            if not components:
+                try:
+                    return json.dumps(value, ensure_ascii=False)
+                except TypeError:
+                    return str(value)
+            ordered_components = list(dict.fromkeys(components))
+            return " | ".join(ordered_components)
+        return str(value)
+
+    def _coerce_keywords(self, value: Any) -> List[str]:
+        """Ensure keywords are an ordered list of unique strings."""
+        if value is None:
+            return []
+
+        tokens: List[str] = []
+
+        if isinstance(value, str):
+            tokens.extend(token.strip() for token in re.split(r"[\,\|;/]", value) if token.strip())
+        elif isinstance(value, (list, tuple, set)):
+            for item in value:
+                if item is None:
+                    continue
+                if isinstance(item, str):
+                    tokens.extend(token.strip() for token in re.split(r"[\,\|;/]", item) if token.strip())
+                else:
+                    coerced = self._coerce_style_text(item)
+                    if coerced:
+                        tokens.append(coerced)
+        elif isinstance(value, dict):
+            for item in value.values():
+                coerced = self._coerce_style_text(item)
+                if coerced:
+                    tokens.append(coerced)
+        else:
+            coerced = self._coerce_style_text(value)
+            if coerced:
+                tokens.append(coerced)
+
+        ordered_tokens: List[str] = []
+        seen: set[str] = set()
+        for token in tokens:
+            lower = token.lower()
+            if lower and lower not in seen:
+                seen.add(lower)
+                ordered_tokens.append(token)
+
+        return ordered_tokens[:6]
 
     def _compose_prompt(self, instructions: str, payload: Dict[str, Any]) -> str:
         serialized_payload = json.dumps(payload, indent=2, ensure_ascii=False)

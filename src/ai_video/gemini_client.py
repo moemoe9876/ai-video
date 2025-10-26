@@ -1,5 +1,6 @@
 """Gemini API client wrapper for video understanding."""
 
+import time
 from pathlib import Path
 from typing import Optional, Union
 import json
@@ -28,6 +29,8 @@ class GeminiVisionClient:
         self.model = model or settings.gemini.model
         self.client = genai.Client(api_key=self.api_key)
         self.max_retries = settings.gemini.max_retries
+        self.file_activation_timeout_s = settings.gemini.file_activation_timeout_s
+        self.file_activation_poll_interval_s = settings.gemini.file_activation_poll_interval_s
         
         logger.info(f"Initialized Gemini client with model: {self.model}")
 
@@ -208,7 +211,9 @@ class GeminiVisionClient:
         logger.info(f"Uploading video to File API: {video_path}")
         
         uploaded_file = self.client.files.upload(file=str(video_path))
-        logger.info(f"File uploaded: {uploaded_file.name}")
+        logger.info(f"File uploaded: {uploaded_file.name} (state={uploaded_file.state})")
+        active_file = self._wait_for_file_activation(uploaded_file.name)
+        logger.info(f"File ready for analysis: {active_file.name} (state={active_file.state})")
         
         analysis_prompt = self._get_analysis_prompt(prompt, use_blueprint)
         
@@ -219,12 +224,16 @@ class GeminiVisionClient:
             video_metadata['end_offset'] = end_offset
         if fps:
             video_metadata['fps'] = fps
-        
+
+        metadata_obj = types.VideoMetadata(**video_metadata) if video_metadata else None
+        file_part_kwargs = {
+            "file_data": types.FileData(file_uri=active_file.uri),
+        }
+        if metadata_obj:
+            file_part_kwargs["video_metadata"] = metadata_obj
+
         parts = [
-            types.Part(
-                file_data=types.FileData(file_uri=uploaded_file.uri),
-                video_metadata=types.VideoMetadata(**video_metadata) if video_metadata else None
-            ) if video_metadata else uploaded_file,
+            types.Part(**file_part_kwargs),
             types.Part(text=analysis_prompt)
         ]
         
@@ -236,7 +245,7 @@ class GeminiVisionClient:
         
         response = self.client.models.generate_content(
             model=self.model,
-            contents=parts,
+            contents=types.Content(parts=parts),
             config=config
         )
         
@@ -289,6 +298,53 @@ class GeminiVisionClient:
             '3gpp': 'video/3gpp',
         }
         return mime_types.get(ext, 'video/mp4')
+
+    def _wait_for_file_activation(self, file_name: str) -> types.File:
+        """Poll the Gemini File API until the file reaches ACTIVE state."""
+        deadline = time.monotonic() + self.file_activation_timeout_s
+        last_state = None
+
+        while time.monotonic() < deadline:
+            current_file = self.client.files.get(name=file_name)
+            state = getattr(current_file, "state", None)
+            normalized_state = self._normalize_file_state(state)
+
+            if normalized_state == "ACTIVE":
+                return current_file
+
+            if normalized_state == "FAILED":
+                error_payload = getattr(current_file, "error", None)
+                raise RuntimeError(
+                    f"File {file_name} processing failed with error: {error_payload}"
+                )
+
+            if normalized_state != last_state:
+                logger.debug(
+                    f"Waiting for file {file_name} to become ACTIVE (state={normalized_state or 'UNKNOWN'})"
+                )
+                last_state = normalized_state
+
+            time.sleep(self.file_activation_poll_interval_s)
+
+        raise TimeoutError(
+            f"Timed out waiting for file {file_name} to become ACTIVE "
+            f"after {self.file_activation_timeout_s}s (last_state={last_state})"
+        )
+
+    @staticmethod
+    def _normalize_file_state(state: Optional[Union[str, "types.FileState"]]) -> str:
+        """Normalize file state to uppercase string for comparison."""
+        if state is None:
+            return ""
+
+        value = getattr(state, "value", None)
+        if isinstance(value, str):
+            return value.upper()
+
+        text = str(state)
+        if "." in text:
+            text = text.split(".")[-1]
+        return text.upper()
     
     def analyze_images(
         self,

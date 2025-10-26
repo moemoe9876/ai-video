@@ -1,7 +1,7 @@
 """Video Analysis Agent - Analyzes videos and produces structured reports."""
 
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union, Optional, List
 from datetime import datetime
 
 from ..models import VideoReport, Scene, Shot, Entity
@@ -101,7 +101,7 @@ class VideoAnalysisAgent:
             scene = self._build_scene(scene_data)
             scenes.append(scene)
         
-        report_data["scenes"] = scenes
+        report_data["scenes"] = self._normalize_scene_timings(scenes, report_data["duration"])
         
         main_entities = []
         for entity_data in analysis_data.get("main_entities", []):
@@ -228,6 +228,116 @@ class VideoAnalysisAgent:
         }
         
         return Shot(**shot_dict)
+
+    @staticmethod
+    def _normalize_scene_timings(scenes: List[Scene], video_duration: float) -> List[Scene]:
+        """Normalize scene and shot timings to cover the full video duration."""
+        if not scenes:
+            return scenes
+
+        min_scene_duration = 0.1  # seconds
+        min_shot_duration = 0.05  # seconds
+        rounding_decimals = 3
+
+        sorted_scenes = sorted(scenes, key=lambda s: (s.start_time, s.scene_index))
+
+        # Use scene durations as weights; ensure no zero weights
+        scene_weights = []
+        for scene in sorted_scenes:
+            raw_duration = scene.duration or (scene.end_time - scene.start_time)
+            if raw_duration is None or raw_duration <= 0:
+                raw_duration = min_scene_duration
+            scene_weights.append(max(raw_duration, min_scene_duration))
+
+        total_weight = sum(scene_weights)
+        if video_duration and video_duration > 0 and total_weight > 0:
+            scene_scale = video_duration / total_weight
+        else:
+            scene_scale = 1.0
+
+        normalized_scenes: List[Scene] = []
+        current_time = 0.0
+
+        for idx, (scene, weight) in enumerate(zip(sorted_scenes, scene_weights), start=1):
+            duration = max(weight * scene_scale, min_scene_duration)
+            start_time = current_time
+            end_time = start_time + duration
+            current_time = end_time
+
+            # Normalize shots within the scene
+            shots = sorted(scene.shots, key=lambda sh: (sh.start_time, sh.shot_index))
+            shot_weights = []
+            for shot in shots:
+                raw_shot_duration = shot.duration or (shot.end_time - shot.start_time)
+                if raw_shot_duration is None or raw_shot_duration <= 0:
+                    raw_shot_duration = min_shot_duration
+                shot_weights.append(max(raw_shot_duration, min_shot_duration))
+
+            total_shot_weight = sum(shot_weights)
+            shot_scale = (duration / total_shot_weight) if total_shot_weight > 0 else 0.0
+
+            normalized_shots = []
+            shot_current = start_time
+            for shot_idx, (shot, shot_weight) in enumerate(zip(shots, shot_weights), start=1):
+                shot_duration = max(shot_weight * shot_scale, min_shot_duration) if shot_scale else duration / max(len(shots), 1)
+                shot_start = shot_current
+                shot_end = shot_start + shot_duration
+                shot_current = shot_end
+
+                normalized_shots.append(
+                    shot.model_copy(
+                        update={
+                            "shot_index": shot_idx,
+                            "start_time": round(shot_start, rounding_decimals),
+                            "end_time": round(shot_end, rounding_decimals),
+                            "duration": round(max(shot_end - shot_start, min_shot_duration), rounding_decimals),
+                        }
+                    )
+                )
+
+            # Ensure last shot lines up with scene end
+            if normalized_shots:
+                last_shot = normalized_shots[-1]
+                normalized_shots[-1] = last_shot.model_copy(
+                    update={
+                        "end_time": round(end_time, rounding_decimals),
+                        "duration": round(max(end_time - last_shot.start_time, min_shot_duration), rounding_decimals),
+                    }
+                )
+
+            normalized_scene = scene.model_copy(
+                update={
+                    "scene_index": idx,
+                    "start_time": round(start_time, rounding_decimals),
+                    "end_time": round(end_time, rounding_decimals),
+                    "duration": round(max(end_time - start_time, min_scene_duration), rounding_decimals),
+                    "shots": normalized_shots,
+                }
+            )
+            normalized_scenes.append(normalized_scene)
+
+        # Adjust final scene to exactly match video duration
+        if video_duration and normalized_scenes:
+            final_scene = normalized_scenes[-1]
+            final_end_time = round(video_duration, rounding_decimals)
+            if final_scene.end_time != final_end_time:
+                final_scene = final_scene.model_copy(
+                    update={
+                        "end_time": final_end_time,
+                        "duration": round(max(final_end_time - final_scene.start_time, min_scene_duration), rounding_decimals),
+                    }
+                )
+                if final_scene.shots:
+                    final_shot = final_scene.shots[-1]
+                    final_scene.shots[-1] = final_shot.model_copy(
+                        update={
+                            "end_time": final_end_time,
+                            "duration": round(max(final_end_time - final_shot.start_time, min_shot_duration), rounding_decimals),
+                        }
+                    )
+                normalized_scenes[-1] = final_scene
+
+        return normalized_scenes
 
     def _attach_camera_breakdowns(self, report: VideoReport) -> None:
         """Enrich each scene with structured camera analysis."""

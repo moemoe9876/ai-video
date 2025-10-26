@@ -15,6 +15,8 @@ class GeminiConfig(BaseModel):
     max_retries: int = Field(default=3)
     timeout: int = Field(default=120)
     file_api_threshold_mb: int = Field(default=20)
+    file_activation_timeout_s: int = Field(default=120)
+    file_activation_poll_interval_s: float = Field(default=2.0)
 
 class VideoConfig(BaseModel):
     """Video processing configuration."""
